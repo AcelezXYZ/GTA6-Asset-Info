@@ -34,18 +34,8 @@ The second group shows `round16(10 × file_count)` for the region between `index
 
 ## Table of contents
 
-Encrypted. Entropy is at the uniform-random level in every archive; no repeated 16-byte blocks
-occur; the first 32 bytes of the TOC are **identical across all 22 archives**, which means the
-plaintext there is identical and the transform is position-addressed rather than randomised per
-archive.
-
-Consequences:
-
-- No file names or directory tree are recoverable from the TOC itself.
-- The identical 32-byte prefix is a known-plaintext crib.
-- A 16-byte-record interpretation is not supported: sortedness at strides 4, 8 and 16 measures
-  0.49–0.56 (a shuffled control gives the same), and a 1.3M-token name universe hashed with
-  joaat or crc32 produces 488 hits against 489 expected by chance.
+Encrypted. Entropy is at the uniform-random level in every archive, and no repeated 16-byte blocks
+occur. No file names or directory tree are recoverable from the TOC.
 
 ## Payload
 
@@ -69,16 +59,10 @@ the magic at 4 KiB boundaries rather than assume one header per file.
 Each archive ends with a trailer whose length is a multiple of 16, located at `EOF − length`.
 Record count `N = length / 16` is always `≥ file_count`.
 
-**Prefix law (OBSERVED):** `trailer[0:16] = C(file_count)` and `trailer[16:32] = C(N)`. Archives
-sharing a `file_count` have byte-identical bytes `0..16` with no exceptions, and bytes `16..32`
-differ exactly where `N` differs. `C` matches none of 77 unkeyed digest candidates, so it is a
-keyed transform.
-
 ## Open questions
 
-- TOC cipher and key.
 - Meaning of header fields `0x08`, `0x18`–`0x22`, `0x2C`, `0x30`.
 - `0x24` versus carved counts: 2,078 by header read for the largest archive, against 523,552
   carved streams for the same archive. These are different quantities — file count against
-  stream count — and do not conflict once named; a carve of that archive should show roughly
-  250 streams per file if that reading is right.
+  stream count — and do not conflict once named. The implied streams-per-file ratio is untested;
+  a full carve of that archive is required before it can be stated.

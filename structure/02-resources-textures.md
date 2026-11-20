@@ -50,14 +50,14 @@ RGBA16F/UNORM, R16F, R8 and A8.
 ## Tile mode
 
 Descriptor bits 24..27 select the tile family. Across 1,722 descriptors in one store the values
-divide as mode 0 ×199, mode 1 ×176, mode 2 ×1,147, mode 3 ×200 — four modes, matching an external
-reading of **SW_64KB_D for mode 0** and **SW_4KB_S for modes 1–3**. This resolves which family to
+divide as mode 0 ×199, mode 1 ×176, mode 2 ×1,147, mode 3 ×200 — four modes: **mode 0 = `SW_64KB_D`, modes 1–3 = `SW_4KB_S`**. This resolves which family to
 apply per surface; the exact bit permutation within each family still has to be validated against
 a known image.
 
 ## Deswizzle
 
-Xbox Series stores tiled surfaces. Two tile families are observed: 4 KiB (`SW_4KB_D`) and 64 KiB.
+Xbox Series stores tiled surfaces. The family is selected by descriptor bits 24..27: mode 0 is
+`SW_64KB_D`; modes 1–3 are `SW_4KB_S`.
 Deswizzling requires the tile family, the element size and the surface dimensions; the index is a
 Morton-style bit permutation over (x, y) whose exact terms differ per element size. Treating a
 swizzled surface as linear produces plausible-looking noise, which is why a correct tile

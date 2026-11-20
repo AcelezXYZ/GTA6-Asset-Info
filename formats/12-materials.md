@@ -45,6 +45,28 @@ terrain_multilayer.
 | `739e3d0d` | packed: R region mask, G nearly flat (puddle blobs), B roughness/height-like, A AO-like | inferred |
 | `19df25d7` | format 157 (unknown), vehicle shader | unknown |
 
+## Two-layer multilayer shaders (walls, ground pieces, blend decal)
+
+Shaders `b217b263`, `1251cae5`, `cd8ceb5e`, `77d8ab27` (12 parameters) and
+`4f0b809b` (terrain blend decal) blend two full texture sets by vertex
+colour. Derived from texture sizes and vertex/UV statistics over 4.7 K
+materials, not from shader code (as of 2026-11-20).
+
+| Item | 12-parameter family | `4f0b809b` | Confidence |
+|---|---|---|---|
+| base layer: colour, normal, data, two-channel | p0, p6, p7, p9 | p2, p10, p3, p0 | confirmed (slots of a layer always share an aspect ratio; the layers differ) |
+| layer 2: colour, normal, data, two-channel | p4, p10, p5, p2 | p7, p4, p5, p9 | confirmed (same test) |
+| overlay (colour + alpha, grime) | p8 | p6 | inferred |
+| layer 2 weight | COLOR0.a, the only vertex channel painted over 0..255 | same | inferred |
+| layer 2 UV set | TEXCOORD_1 (texel anisotropy matches in 108/117 and 54/72 primitives) | — | inferred |
+| base UV set | TEXCOORD_0 (by elimination; TEXCOORD_2 is often constant) | — | inferred, weak |
+| COLOR0 r, g, b | r mostly 255, g within 0..45, b a few distinct values | — | unknown meaning |
+| data maps (BC7) | R varies, G about constant per texture, B and A vary | — | unknown meaning |
+| two-channel maps (BC1) | R = 0, G and B anti-correlated | — | unknown meaning |
+
+The 17-parameter ground shaders (`360e396b`, `b21f1ba5`, `61e09df7`) are a
+different, many-layer family and are not mapped yet.
+
 **Normal maps are DirectX convention (green = +Y down)** (confirmed by an
 integrability test on 270 of 300 maps). Invert G for glTF/OpenGL.
 

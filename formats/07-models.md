@@ -94,16 +94,23 @@ agree with the stored normals; flip the rest.
 |---|---|---|
 | geometry record (0xA0) | +0x08 ptr → mesh-blob descriptor; +0x40 ptr → holder whose first u64 points to the index-buffer descriptor | confirmed |
 | model (stride 0x40) | +0x00 ptr → geometry-record ptrs; +0x08 u16 count, u16 capacity; +0x0C u32; +0x10 ptr (bounds?); **+0x18 ptr → u16 shader index per geometry**; +0x28 u32, u8 0xFF, u8, u16 count | confirmed (0x00, 0x08, 0x18) |
-| LOD table | one 16-byte entry per level {ptr → model-pointer array, u16 count, u16 capacity}; empty levels zero | confirmed |
+| model-array header | 16 bytes {ptr → model-pointer array, u16 count, u16 capacity} | confirmed |
+| LOD group | pointers to model-array headers at **+0x50, +0x58, +0x60, +0x68** of the main drawable (high, med, low, vlow; empty = 0). Main drawable = the root of a `.#dr`, the struct at root+0x18 of a `.#ft` | confirmed (2026-11-20) |
+| embedded drawables | other model arrays belong to embedded drawables: fragment children (root+0x10, records 0xC0 apart, each with its own +0x50 list) and nested sub-drawables in buildings. They are parts, not LODs | confirmed layout; placement of fragment-child parts inferred |
 | drawable bounds | root +0x30 / +0x40 bbox min / max (drawables only) | confirmed |
 | fragment bounds | fragment root +0x18 → its drawable, whose +0x30 / +0x40 hold the bbox | confirmed |
 | stored bbox reliability | not always the geometry's extent: on route-sign prefab fragments it is shifted about 4.3 m in x, and on one scaffolding model it is rotated 90° about z. The archetype definition's bbox matches the decoded geometry in both cases (as of 2026-11-20) | confirmed (2 cases) |
 
 Each model struct is preceded by 8 bytes and referenced at struct − 8 from
 an array of model pointers. On a vehicle body, LOD1 is the same parts with
-about 3× fewer vertices (not a damage set). **On building drawables,
-LOD-table slots 1–3 hold ~1 cm trim or decal strips**, not reduced copies:
-use the placement LOD hierarchy ([§9.2](09-placements.md)) for distance LODs on the map.
+about 3× fewer vertices (not a damage set). Ranking every model array by
+file offset gives wrong LODs: on fragment props (streetlights, signs) a
+base plate or bracket became LOD0 and the full pole LOD2, and on buildings
+trim strips from sub-drawables became LOD1–3. Use only the LOD group. In a
+sample, 8 % of drawables and 2 % of fragments have such parts (aircraft:
+5–16, flat rotor-height pieces in model space). Map buildings usually have
+a single LOD: use the placement LOD hierarchy ([§9.2](09-placements.md))
+for distance LODs.
 
 ## 7.5 Skeleton (fragments, confirmed)
 

@@ -11,7 +11,7 @@ carries `note` fields explaining itself; unknown fields are kept by hash.
 |---|---|
 | `source` | `{archive, id, offset, streams}` |
 | `name`, `type` | recovered name; `dr` / `ft` … |
-| `glb`, `lod_glbs`, `points_glb` | file names written |
+| `glb`, `lod_glbs`, `parts_glb`, `points_glb` | file names written. `parts_glb` (`model_parts.glb`, added 2026-11-20) holds models of embedded drawables (fragment children, building sub-drawables); they are not LODs, and `meshes[]` marks them `part: true` with `lod: null` |
 | `vertex_count`, `triangle_count` | totals |
 | `geometry_bbox` | `[min, max]` in RAGE model space (Z-up), over the LOD0 meshes, computed from the decoded vertices (added 2026-11-20). Prefer it to `drawable.bounds` and `bounds_raw`, which are offset or rotated on some models |
 | `coordinate_system` | axes and units note |
@@ -19,7 +19,7 @@ carries `note` fields explaining itself; unknown fields are kept by hash.
 | `meshes[]` | per geometry: `name` (`geomNN_<off>`), `geometry`, `vertex_count`, `triangle_count`, `exceeds_kn5_16bit_limit`, `material` (`shaderNN_<hash>`), `shader_index`, `uv_sets`, `uv_slots`, `normals`, `vertex_colors_raw`, `triangles_flipped_to_match_normals`, `triangles_dropped`, `position_axis_order`, `skinned`, `skin_influences`, `bones`, `bbox` (RAGE `[min, max]` from the vertices, added 2026-11-20) |
 | `wheel_mounts[]` | `{bone, pivot}`: wheel centres in model space (RAGE Z-up) |
 | `drawable` | parsed structure: `models[]`, `shaders[]`, `skeleton[]` (node, parent, `pivot`, `bind_matrix`), `bounds` |
-| `materials[]` | per shader: `shader`, `shader_name_hash`, `classification`, `base_color`, `normal`, `normal_green`, `textures[]`, optional `texture_fallback`, and a `paint` block on car paint |
+| `materials[]` | per shader: `shader`, `shader_name_hash`, `classification`, `base_color`, `normal`, `normal_green`, `textures[]`, optional `texture_fallback`, a `paint` block on car paint, and a `multilayer` block on two-layer blend shaders |
 | `buffer_files`, `texture_files` | written files |
 
 `classification` = `{class, render_bucket, alpha_mode, instanced_or_batch_lod, family, record_flags, decal}`;
@@ -36,6 +36,17 @@ decal layers. No per-material priority is known in the shader record, so
 `order` comes from the class: terrain blend layers 0, other decals
 (markings, grime, signage) 1 (confidence: medium). In the viewers a depth
 bias of a few millimetres plus this order removes the fighting.
+
+`multilayer` (added 2026-11-20) is set on the two-layer blend shaders
+(walls, ground pieces, terrain blend decal; format spec §12):
+`{layers: [base, layer2], overlay, extra_data, vertex_color_channels,
+confidence, note}`. Each layer is `{name, colour, normal, data,
+two_channel, uv_set, weight}`, and each texture is `{param, png, status}`.
+Suggested blend: `lerp(base, layer2, COLOR0.a)` with base on TEXCOORD_0
+and layer 2 on TEXCOORD_1, then the overlay by its own alpha (UV set
+unknown). The grouping of slots into layers is confirmed. The weight
+channel and the layer-2 UV set are inferred, the base UV set is a weak
+inference, and the data and two-channel meanings are unknown.
 
 Each `textures[]` entry has `param`, `param_hash`, `hash64`, `hash32`,
 format, size, tile mode, `role_guess`, `slot_role`, the PNG path or the

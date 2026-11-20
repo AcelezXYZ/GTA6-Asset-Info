@@ -26,6 +26,7 @@ Used by `list`, `search`, `extract` and the world commands.
 | `--name <regex>` | regex on the recovered name (or id) |
 | `--exclude-name <regex>` | regex on names to leave out |
 | `--id a,b` | exact entry ids or hex offsets |
+| `--id-file ids.txt` | ids from a file, one per line (`#` comments allowed); combines with `--id`. Use it for long lists (added 2026-11-20) |
 | `--min-size <bytes>` | minimum decompressed size |
 | `--limit <n>` | at most n entries |
 | `--bbox=minx,miny,maxx,maxy` | world region in RAGE metres, for `placements`, `collision`, `navmesh`, `lights`. Write it with `=` so negative values parse. |

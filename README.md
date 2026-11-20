@@ -47,7 +47,7 @@ differ.
 
 - **BCPack**, the Xbox Series hardware texture codec. The rANS coder and the
   stream layout are partly mapped; there is no decoder.
-  [Details and how to resume](formats/06-bcpack.md#how-to-resume).
+  [Details and how to resume](formats/06-bcpack.md#64-how-to-resume).
 - **The name hash** used for shaders, shader parameters and collision
   surfaces is unknown.
 - **The RPF9 TOC** is encrypted.

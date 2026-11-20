@@ -26,9 +26,19 @@ The **Game** and **Work** fields take the same defaults as the CLI; use
 
 ## Model viewer tab
 
-Open a model by entry id, by name regex (`^phoenix_hi$`; prefix another
-archive as `data:^w_pi`), from an exported `.glb`, or from the Browser.
-Entries are exported on the fly into `<work>/gui_cache`.
+Pick a model from the **Models** list on the left. It holds every
+drawable and fragment in `levels.rpf` and `packs.rpf`, in these
+categories: Vehicles (about 240 plus `_hi` copies), Vehicle parts, Wheels,
+Weapons, Props, Vegetation, Interiors, Buildings & map, and Unnamed.
+- Search box: words match names and ids.
+- **hide LOD copies**, on by default.
+- Favourites (☆) and a **Recent** list.
+- Click to load. **Up / Down** or ◀ ▶ step through the list.
+
+You can also open by entry id, by name regex (`^phoenix_hi$`; prefix
+another archive as `data:^w_pi`), from an exported `.glb`, or from the
+Browser. Entries are exported on the fly into `<work>/gui_cache_v2`
+(added 2026-11-20).
 
 - Shading: base colour, normal map (DirectX green), packed
   roughness/metal/AO with a channel-order switch, alpha / cutout / decal /
@@ -49,10 +59,16 @@ Entries are exported on the fly into `<work>/gui_cache`.
 
 ## Map 2D tab
 
-First bake the map from the world exports:
+First bake the map from the world exports. **Bake map** / **Re-bake
+map** at the top of both map tabs does it in the app:
+- It runs as a separate process, with progress, **Cancel**, and a
+  reload when done (about 2 minutes).
+- It names any World data steps still missing (placements are required).
+
+Or from the command line:
 
 ```powershell
-sixng-gui --bake-map            # full bake, ~5 min, ~1 GB in <work>/map
+sixng-gui --bake-map            # full bake, ~2 min, ~1 GB in <work>/map
 sixng-gui --bake-map raster     # rasters only, ~45 s, reuses the collision cache
 ```
 
@@ -86,7 +102,7 @@ first, as above):
 
 - drag to look, WASD/arrows to move, Q/E down/up, Shift faster (speed
   scales with height above ground);
-- models are exported on demand into `<work>/gui_cache` by background
+- models are exported on demand into `<work>/gui_cache_v2` by background
   workers, nearest first, and drawn instanced; textures are shared and
   sized by distance;
 - a **Detail** slider for the LOD distance bands (HD, LOD, SLOD1–4), prop
@@ -134,6 +150,8 @@ For checks and docs:
 
 ```powershell
 sixng-gui --model levels.rpf@10f266d010 --mode 5 --yaw 2.4 --pitch 0.25 --screenshot car.png --exit
+sixng-gui --model levels.rpf@115e6c6010 --picker-cat vehicles --window-screenshot picker.png --exit
+sixng-gui --tab map2d --start-bake --screenshot map.png --exit   # bakes first, shot after reload
 sixng-gui --tab map2d --center -670,60 --mpp 2 --base 0 --overlays 2,3 --lights --hour 22 --screenshot map.png --exit
 sixng-gui --tab map3d --center -640,-60 --height 450 --yaw 225 --pitch 30 --detail 0.5 --tod 17 --screenshot city.png --exit
 ```

@@ -79,10 +79,54 @@ In the tab:
 - **Measure**; **Box select** shows the `--bbox` for region exports;
 - a readout of game x/y/z and the glTF/BeamNG position (x, z, −y).
 
+## Map 3D tab
+
+A fly-through of the placed models, streamed from the baked map (bake
+first, as above):
+
+- drag to look, WASD/arrows to move, Q/E down/up, Shift faster (speed
+  scales with height above ground);
+- models are exported on demand into `<work>/gui_cache` by background
+  workers, nearest first, and drawn instanced; textures are shared and
+  sized by distance;
+- a **Detail** slider for the LOD distance bands (HD, LOD, SLOD1–4), prop
+  and vegetation density and minimum screen size, each also adjustable on
+  its own, plus the drawable LOD and a texture size cap;
+- **HD fallback** (default on): most LOD-level placements have no linked
+  model yet, so large HD models stay visible to 1.75× the HD distance
+  and the LOD level is skipped;
+- a 7 km terrain mesh from the 8 m heights, with buildings filtered out
+  (the baked heights are the top collision surface);
+- road and exterior-light overlays (by hour), a draggable **Minimap**
+  (click to move) and **Stream** statistics window; click a model to
+  inspect it and **Open in model viewer**;
+- LOD hand-off from the placement LOD links: a parent LOD/SLOD is drawn
+  until the camera is inside its `child_lod_dist` *and* all its children
+  have loaded, then the children replace it, so the two are never drawn
+  together. A child whose parent has no model stays visible out to the
+  parent's distance. Placements without links use the distance bands;
+- proxies and placeholders (see the placements `render_reason`) are
+  hidden; **show proxies / placeholders** draws them for debugging;
+- decal-bucket materials are drawn after opaque geometry by layer order
+  with a small depth bias, and the renderer uses a reversed-Z 32-bit
+  depth buffer, so coplanar markings, grime and signage and distant
+  surfaces do not flicker; **decal depth bias** turns this off for
+  comparison;
+- **Memory** limits that scale with the installed RAM: past 20 % of RAM
+  only nearby models load (at 64 px), past 30 % the farthest visible ones
+  are dropped. Untick **automatic** to set your own limit; it is saved in
+  `<work>/gui_settings.json`.
+
+Coverage notes (confidence: high, checked on downtown): about 88 % of
+LOD-level placements and most SLOD placements carry no model link or only
+a placeholder unit-cube bounding box, and SLOD ground tiles ship without
+normals (the viewer derives them).
+
 ## More coming
 
-Planned: a 3D map view, per-target previews (BeamNG, Assetto Corsa),
-day/night, a change report, and an audio browser.
+Planned: a user-friendly library home and setup wizard, per-target
+previews (BeamNG, Assetto Corsa), day/night, a change report, and an
+audio browser.
 
 ## Command-line screenshots
 
@@ -91,6 +135,7 @@ For checks and docs:
 ```powershell
 sixng-gui --model levels.rpf@10f266d010 --mode 5 --yaw 2.4 --pitch 0.25 --screenshot car.png --exit
 sixng-gui --tab map2d --center -670,60 --mpp 2 --base 0 --overlays 2,3 --lights --hour 22 --screenshot map.png --exit
+sixng-gui --tab map3d --center -640,-60 --height 450 --yaw 225 --pitch 30 --detail 0.5 --tod 17 --screenshot city.png --exit
 ```
 
 Model options: `--lod N`, `--mode 0-7` (shaded, albedo, normals, UV, slot,
@@ -99,7 +144,13 @@ gaps, vertex colour, lighting), `--slot 0-3`, `--rma 0-3`, `--wire`,
 `--pearl A`, `--wet A`, `--exposure E`, `--spin R`, `--door R`, `--yaw R`,
 `--pitch R`, `--zoom F`, `--size WxH`. Map options: `--center X,Y`,
 `--mpp M`, `--base N`, `--overlays a,b`, `--lights`, `--hour H`,
-`--search name`.
+`--search name`. 3D map options: `--center X,Y`, `--height H`, `--yaw DEG`,
+`--pitch DEG`, `--detail 0-1`, `--tod H`, `--lights`, `--roads`,
+`--no-terrain`, `--fog F`, `--max-tex PX`, `--no-textures`,
+`--no-hd-fallback`, `--kinds a,b`, `--lods a,b`, `--ram-cap GB`,
+`--no-windows`, `--no-decal-bias`, `--show-proxies`; the shot waits until
+every visible model has loaded. The model viewer also takes
+`--no-decal-bias`.
 
 ---
 

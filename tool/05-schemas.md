@@ -22,9 +22,20 @@ carries `note` fields explaining itself; unknown fields are kept by hash.
 | `materials[]` | per shader: `shader`, `shader_name_hash`, `classification`, `base_color`, `normal`, `normal_green`, `textures[]`, optional `texture_fallback`, and a `paint` block on car paint |
 | `buffer_files`, `texture_files` | written files |
 
-`classification` = `{class, render_bucket, alpha_mode, instanced_or_batch_lod, family, record_flags}`;
+`classification` = `{class, render_bucket, alpha_mode, instanced_or_batch_lod, family, record_flags, decal}`;
 `class` is one of `opaque`, `alpha`, `cutout`, `decal`, `glass`, `window`,
 `emissive`, `water`, `terrain_multilayer`, `car_paint`.
+
+`decal` (added 2026-11-20) is set on decal-bucket materials (road markings,
+grime, signage, terrain blend layers) and null otherwise:
+`{bias_m, order, order_source, depth_write}`. These surfaces are coplanar
+with the geometry under them, so draw them after opaque geometry, in
+ascending `order`, offset toward the camera by `bias_m` along the normal
+(or an equivalent depth bias); `depth_write` is true for opaque/masked
+decal layers. No per-material priority is known in the shader record, so
+`order` comes from the class: terrain blend layers 0, other decals
+(markings, grime, signage) 1 (confidence: medium). In the viewers a depth
+bias of a few millimetres plus this order removes the fighting.
 
 Each `textures[]` entry has `param`, `param_hash`, `hash64`, `hash32`,
 format, size, tile mode, `role_guess`, `slot_role`, the PNG path or the
@@ -58,6 +69,7 @@ hash) and `entities[]`:
 | `scale_xy`, `scale_z` | scale |
 | `flags`, `guid`, `hash64` | raw |
 | `lod` | `{level: HD/LOD/SLOD1–4/ORPHAN_HD, parent_index, parent_link, num_children, lod_dist, child_lod_dist, priority}` |
+| `render`, `render_reason` | present only when the placement should not be drawn by default: `render: false` and a reason — `placeholder` (no model resolved), `vfx_proxy` (effect markers, e.g. `*vfx*proxy*`, `vfx_dummy*`), `interior_proxy` (interior-shell stand-ins `*_pxy`, `*shell_proxy`, `int_*_proxy`, which duplicate the interior shells), `shadow_proxy` (`*_shadow` shadow casters) or `light_proxy` (`*_lit_proxy`, zero-size geometry). Rules come from exporting examples; `gmt_*_proxy_*` shop items and `*_occl_*` cables are real geometry and are not flagged. Confidence: medium (name rules, checked on the examples). Added 2026-11-20 |
 | `fields` | every other scalar field, by hash |
 
 `index.jsonl`, one line per map file: `id`, `file`, `name_hash`,

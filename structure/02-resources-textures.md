@@ -47,6 +47,14 @@ See `05-ttpf-stores.md`. The descriptor's second u32 carries the format in bits 
 descriptors with no unknown values, covering BC1, BC2, BC3, BC4, BC5, BC6H, BC7, RGBA8, BGRA8,
 RGBA16F/UNORM, R16F, R8 and A8.
 
+## Tile mode
+
+Descriptor bits 24..27 select the tile family. Across 1,722 descriptors in one store the values
+divide as mode 0 ×199, mode 1 ×176, mode 2 ×1,147, mode 3 ×200 — four modes, matching an external
+reading of **SW_64KB_D for mode 0** and **SW_4KB_S for modes 1–3**. This resolves which family to
+apply per surface; the exact bit permutation within each family still has to be validated against
+a known image.
+
 ## Deswizzle
 
 Xbox Series stores tiled surfaces. Two tile families are observed: 4 KiB (`SW_4KB_D`) and 64 KiB.

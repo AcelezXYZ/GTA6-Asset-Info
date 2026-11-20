@@ -15,9 +15,9 @@
 | 0x1C | 4 | constant `0x00000150` | OBSERVED |
 | 0x20 | 2 | takes values 3..7 | UNKNOWN |
 | 0x22 | 2 | 1 | UNKNOWN |
-| 0x24 | 4 | a count; equals `file_count` in some readings but not the carved entry count | DISPUTED |
-| 0x28 | 4 | varies per archive | DISPUTED |
-| 0x2C | 4 | only two values observed across 22 archives: `0x00090F01` and `0x00090F02` | OBSERVED |
+| 0x24 | 4 | per-archive file count (2,078 for the largest archive); **not** the carved stream count | OBSERVED |
+| 0x28 | 4 | key id — exactly **4 distinct values** across 22 archives: `0xC0A92754`, `0xD5C19F6B`, `0xD98004D5`, `0xDA72573E` | OBSERVED |
+| 0x2C | 4 | index variant — exactly **2 distinct values** across 22 archives: `0x00090F01`, `0x00090F02` | OBSERVED |
 | 0x30 | 4 | constant `0x10` | OBSERVED |
 
 ### Header variants
@@ -78,5 +78,7 @@ keyed transform.
 
 - TOC cipher and key.
 - Meaning of header fields `0x08`, `0x18`–`0x22`, `0x2C`, `0x30`.
-- The `0x24` disagreement: 2,078 by direct header read for the largest archive versus 523,552
-  carved entries for the same archive.
+- `0x24` versus carved counts: 2,078 by header read for the largest archive, against 523,552
+  carved streams for the same archive. These are different quantities — file count against
+  stream count — and do not conflict once named; a carve of that archive should show roughly
+  250 streams per file if that reading is right.

@@ -31,12 +31,14 @@ swizzle rather than as a wrong offset — a useful diagnostic.
 
 ### Codec ids
 
-| Id | Chunks (one install) | Content | Encoding |
-|---|---|---|---|
-| 0x20 | 908,643 | any | zlib |
-| 0x04 | 100,026 | BC1 | BCPack |
-| 0x0C, 0x10 | 35, 77 | probably BC3, BC4 | BCPack |
-| others | small | various | BCPack |
+| Id | Content | Encoding |
+|---|---|---|
+| 0x20 | any | zlib (`78 DA` verified on extraction) |
+| 0x04, 0x0C, 0x14, 0x18, 0x1C | BCn surfaces | BCPack (hardware block compression) |
+
+Observed distribution in one 228 MB store: 0x20 ×4,334, 0x04 ×85, 0x1C ×57, 0x14 ×44,
+0x18 ×4, 0x0C ×3. Non-zlib chunks measure ~7.95 bits/byte and do **not** match raw BCn block
+sizes, which is consistent with a compressed block format rather than stored blocks.
 
 ## Texture index (`ETPF`)
 

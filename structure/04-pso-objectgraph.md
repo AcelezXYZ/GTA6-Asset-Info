@@ -2,7 +2,20 @@
 
 ## `PSIN` container
 
-Big-endian. Sections are walked by a u32 length that **includes its own 8-byte header**:
+Big-endian. Sections are walked by a u32 length that **includes its own 8-byte header**.
+
+Evidence sample (99,744-byte `PSIN` payload) — first 32 bytes:
+
+```
+50 53 49 4e | 00 01 09 90 | 7a 07 d1 8b | 60 18 00 00
+PSIN          0x00010990                    0x00001860
+```
+
+Read big-endian the first section length is `0x00010990` = 67,984 and the walk yields
+`PSIN → LSCH → LENM → LSNS → LGID → LRSC → CHKS`, closing exactly at EOF. Read little-endian the
+first length becomes `0x90090100` (2.4 GB) and the walk fails immediately. Two of three sampled
+payloads close at EOF this way; the third is a 458,752-byte body whose first length is `0x0006F0E0`
+and which does not close — recorded as an open case rather than assumed.
 
 | Tag | Meaning |
 |---|---|

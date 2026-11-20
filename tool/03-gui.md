@@ -6,8 +6,15 @@
 sixng-gui
 ```
 
-The **Game** and **Work** fields take the same defaults as the CLI; use
-**Browse…** to choose another install.
+The **Game** and **Work** fields each have a **Browse…** button. The app
+picks its folders in this order:
+
+1. the `SIXNG_GAME` and `SIXNG_WORK` environment variables;
+2. the folders saved with **💾 Save** (kept in `%APPDATA%\SixNG\settings.json`);
+3. `D:/GTAVI`, and a `work` folder next to the exe.
+
+It never searches parent folders, so it behaves the same wherever you start
+it from. Restart the app after saving new folders.
 
 ## Browser tab
 

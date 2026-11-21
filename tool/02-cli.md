@@ -43,6 +43,7 @@ Used by `extract` and `extract-category`.
 | `--force` | redo items that already have outputs |
 | `--no-embedded-textures` | skip textures embedded in models |
 | `--dry-run` | print the selection count and decompressed size; write nothing |
+| `--body-shape "<control>=<v>,…"` | ped clothing: pose the shared ped skeleton with the game's body-shape rig, e.g. `gcweightbelly=0.5,gcmusclechest=1`. Controls: `gcweight<region>` −1..1, `gcmuscle<region>` 0..1 (back, belly, butt, calf, chest, forearm, hip, muffin, neck, shoulder, thigh, upperarm), `gcbutt` 0..1, `gcbreasts` −1..1; `allweight=v` / `allmuscle=v` set a whole group. The shape goes into the joint node transforms (inverse bind matrices stay neutral). Needs `packs` and `anim` indexed |
 
 **Resumable runs.** Each item writes a marker when it finishes, and items
 with outputs are skipped. To continue a stopped run, run the same command

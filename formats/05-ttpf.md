@@ -105,8 +105,8 @@ true count is stored is unknown; it does not map to a single bit field.
 
 | Tile mode | Gfx10 mode | Block | Element bit order in a block (low → high) |
 |---|---|---|---|
-| 0 | `SW_64KB_D` | 64 KiB | 16-byte: `x0 y0 x1 y1 y2 x2 y3 x3 y4 x4 y5 x5` · 8-byte: `x0 y0 x1 x2 y1 y2 x3 y3 x4 y4 x5 y5 x6` |
-| 1, 2, 3 | `SW_4KB_S` | 4 KiB | 16-byte: `y0 y1 x0 x1 y2 x2 y3 x3` · 8-byte: `x0 y0 y1 x1 x2 y2 x3 y3 x4` |
+| 0 | `SW_64KB_D` | 64 KiB | 16-byte: `x0 y0 x1 y1 y2 x2 y3 x3 y4 x4 y5 x5` · 8-byte: `x0 y0 x1 x2 y1 y2 x3 y3 x4 y4 x5 y5 x6` · 1-byte: `x0 x1 x2 y1 y0 y2 x3 y3 y4 x4 y5 x5 y6 x6 y7 x7` (y1 before y0) |
+| 1, 2, 3 | `SW_4KB_S` | 4 KiB | 16-byte: `y0 y1 x0 x1 y2 x2 y3 x3` · 8-byte: `x0 y0 y1 x1 x2 y2 x3 y3 x4` · 1-byte: `x0 x1 x2 x3 y0 y1 y2 y3 y4 x4 y5 x5` |
 | 9, 10, 11, 12 | `SW_4KB_S`, cube maps only: tile mode − 8 = number of stored copies (below) | 4 KiB | as modes 1–3 |
 
 - Blocks are row-major; no pipe/bank XOR.
@@ -121,8 +121,13 @@ true count is stored is unknown; it does not map to a single bit field.
   offset 0; the other mips follow, each padded to whole blocks.
 - Tail mip k (0 = largest in the tail): `m = max_mips_in_tail − 1 − k`,
   `off = m > 6 ? 16 << m : m << 8`. Origin x = bits 9, 11, 13… of `off`
-  × 8 (8-byte elements) or × 4 (16-byte); y = bits 8, 10, 12… × 4. Apply
-  the block equation to (origin + x, y).
+  × 8 (8-byte elements), × 4 (16-byte) or × 16 (1-byte); y = bits 8, 10,
+  12… × 4, or × 16 for 1-byte elements. The unit is one 256-byte block:
+  8 × 4, 4 × 4 or 16 × 16 elements. Apply the block equation to
+  (origin + x, y).
+- **1-byte formats** (A8 = DXGI 65, R8) decode with these orders in every
+  tile mode (confirmed, 2026-11-21): 126 textures (119 A8 decal and mask
+  textures, 7 R8); mip 1 matches mip 0 downsampled at a median of 63 dB.
 
 Checked per store and format: mip n + 1 equals mip n downsampled (mean
 error 0–4 levels) on BC1, BC3, BC4, BC5 and BC7 in every mode.
@@ -191,7 +196,7 @@ fall from 29,310 to 1,309 textures and low-mip exports from 14,443 to
 | chain touches BCPack, mip 0 still in zlib | 6,966 (2.0 %) |
 | mip 0 in BCPack, a lower mip in zlib (exported at that mip) | 14,441 (4.1 %) |
 | every mip in BCPack | 29,310 (8.3 %) |
-| unsupported 4-/2-byte formats or special tile modes 9–12 | 3,412 (1.0 %) |
+| unsupported 4-/2-/1-byte formats or special tile modes 9–12 (1-byte formats decode since) | 3,412 (1.0 %) |
 
 The coverage table predates the array and cube-map layouts. With them, 563 of
 the 567 cube maps and 118 of the 130 arrays decode (the rest have 4-/2-byte

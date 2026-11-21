@@ -111,7 +111,7 @@ agree with the stored normals; flip the rest.
 | Structure | Field | Confidence |
 |---|---|---|
 | geometry record (0xA0) | +0x08 ptr → mesh-blob descriptor; +0x40 ptr → holder whose first u64 points to the index-buffer descriptor | confirmed |
-| model (stride 0x40) | +0x00 ptr → geometry-record ptrs; +0x08 u16 count, u16 capacity; +0x0C u16 bone-palette count; +0x10 ptr (bounds?); **+0x18 ptr → u16 shader index per geometry**; **+0x20 ptr → bone palette** ([§7.5](#ped-skinning-bone-palette-confirmed)); +0x28 u32, u8 0xFF, u8, u16 count | confirmed (0x00, 0x08, 0x0C, 0x18, 0x20) |
+| model (stride 0x40) | +0x00 ptr → geometry-record ptrs; +0x08 u16 count, u16 capacity; +0x0C u16 (peds: bone-palette count); +0x10 ptr (bounds?); **+0x18 ptr → u16 shader index per geometry**; +0x20 ptr (peds: **bone palette**, [§7.5](#ped-skinning-bone-palette-confirmed)); on vehicles +0x0C / +0x20 hold something else (+0x0C = 295 on a car body, entries not sorted); +0x28 u32, u8 0xFF, u8, u16 count | confirmed (0x00, 0x08, 0x0C, 0x18, 0x20) |
 | model-array header | 16 bytes {ptr → model-pointer array, u16 count, u16 capacity} | confirmed |
 | LOD group | pointers to model-array headers at **+0x50, +0x58, +0x60, +0x68** of the main drawable (high, med, low, vlow; empty = 0). Main drawable = the root of a `.#dr`, the struct at root+0x18 of a `.#ft` | confirmed (2026-11-20) |
 | embedded drawables | other model arrays belong to embedded drawables: fragment children (root+0x10, records 0xC0 apart, each with its own +0x50 list) and nested sub-drawables in buildings. They are parts, not LODs | confirmed layout; placement of fragment-child parts inferred |
@@ -196,7 +196,19 @@ The palette names two kinds of bones:
   `packs.rpf`. `femalexxl` has the same bind pose.
 
 Some T-shirts name 8–9 palette bones that are in neither skeleton. Heads use
-another skin format (slots 8 / 9 with format 0x8c), not decoded yet.
+another skin format (slots 8 / 9 with format 0x8c, 16 bytes per vertex):
+slot 9 reads as 4 × u32 joint indices (up to 50 on a protagonist head),
+slot 8 as 4 × (u16, u16) with plausible joints in the low halves, and
+slots 6 + 7 weights sum to 255 on every vertex (inferred; not decoded).
+
+**Body shape** moves helper bones of the shared skeleton through a rig
+([§17](17-other.md#ped-body-shape)). Other ped facts:
+
+- `ped_standard_muv` (clothing) and `ped_standard_head` dominate; the
+  `ped_standard*_blendshape*` shaders (about 300 uses) are only on rigid
+  accessories (piercings, helmets, dressings).
+- Hair, brows, lashes and beards are about 2 KB drawables with 3 vertices;
+  the real hair is built at runtime.
 
 ## 7.6 Shaders (materials)
 

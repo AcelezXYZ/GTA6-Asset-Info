@@ -10,7 +10,8 @@ The **Game** and **Work** fields each have a **Browse…** button. The app
 picks its folders in this order:
 
 1. the `SIXNG_GAME` and `SIXNG_WORK` environment variables;
-2. the folders saved with **💾 Save** (kept in `%APPDATA%\SixNG\settings.json`);
+2. the folders saved with **💾 Save** (kept in `sixng-settings.json` next to the exe, or in
+   `%APPDATA%\SixNG\settings.json` if that folder is not writable);
 3. `D:/GTAVI`, and a `work` folder next to the exe.
 
 It never searches parent folders, so it behaves the same wherever you start

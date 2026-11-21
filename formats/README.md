@@ -59,3 +59,8 @@ GTA V, used only to say what a structure corresponds to.
 - [17. Other formats](17-other.md)
 
 Each page ends with an **Open questions** list.
+
+**Byte-level notes.** The [structure/](../structure/00-INDEX.md) pages
+record layouts as raw byte facts with the test behind each one. They also
+cover audio (`ADAT`), the PSO object graph and the shader cache, which these
+pages only mention. Where the two sets disagree, both readings are given.

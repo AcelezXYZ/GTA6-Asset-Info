@@ -12,7 +12,11 @@ picks its folders in this order:
 1. the `SIXNG_GAME` and `SIXNG_WORK` environment variables;
 2. the folders saved with **💾 Save** (kept in `sixng-settings.json` next to the exe, or in
    `%APPDATA%\SixNG\settings.json` if that folder is not writable);
-3. `D:/GTAVI`, and a `work` folder next to the exe.
+3. for the work folder only, a `work` folder next to the exe.
+
+There is no default game folder. On first start (or if the saved folder no
+longer exists) the app shows **Choose game folder…**; the folder you pick
+is saved for next time, and the CLI uses it too.
 
 It never searches parent folders, so it behaves the same wherever you start
 it from. Restart the app after saving new folders.
@@ -146,6 +150,22 @@ LOD-level placements and most SLOD placements carry no model link or only
 a placeholder unit-cube bounding box, and SLOD ground tiles ship without
 normals (the viewer derives them).
 
+## Textures tab
+
+Every texture in the `ttpf` stores, without going through a model.
+
+- Filter by store, by format and by minimum size; the count updates as you
+  filter.
+- Pick a texture to preview it: choose the **mip** and the **channel**,
+  and zoom (0 = fit).
+- **Export PNG** saves the shown mip to `<work>/out/textures/`
+  (`<hash>_m<mip>.png`); **Show in Explorer** opens the folder.
+- In the model viewer's material list, **view** on a texture slot opens
+  that texture here.
+
+Textures with no readable mip (BCPack, [§6](../formats/06-bcpack.md))
+cannot be previewed.
+
 ## More coming
 
 Planned: a user-friendly library home and setup wizard, per-target
@@ -176,7 +196,8 @@ gaps, vertex colour, lighting), `--slot 0-3`, `--rma 0-3`, `--wire`,
 `--no-hd-fallback`, `--kinds a,b`, `--lods a,b`, `--ram-cap GB`,
 `--no-windows`, `--no-decal-bias`, `--show-proxies`; the shot waits until
 every visible model has loaded. The model viewer also takes
-`--no-decal-bias`.
+`--no-decal-bias`. `--tab textures` opens the Textures tab, and
+`--texture <hash>` opens one texture there.
 
 ---
 

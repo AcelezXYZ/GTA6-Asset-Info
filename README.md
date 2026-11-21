@@ -21,9 +21,12 @@ documentation only: no game files, no extracted assets, no keys. Read
 | World | [Collision](formats/13-collision.md) · [Navmesh](formats/14-navmesh.md) · [Lights](formats/15-lights.md) · [Road graph](formats/16-roads.md) |
 | Materials | [Vehicle paint](formats/11-vehicle-paint.md) · [Material classes](formats/12-materials.md) |
 | Other | [PSO, RBF, BVH4, audio, animation](formats/17-other.md) |
+| Byte-level notes | [Index](structure/00-INDEX.md) · [RPF9 container](structure/01-rpf9-container.md) · [Resources and textures](structure/02-resources-textures.md) · [Audio (`ADAT`)](structure/03-audio-awc.md) · [PSO and object graph](structure/04-pso-objectgraph.md) · [`ttpf` stores](structure/05-ttpf-stores.md) · [Models and shaders](structure/06-models-shaders.md) |
 
 The [format index](formats/README.md) has the conventions. Every page gives
-each field a confidence level and ends with its open questions.
+each field a confidence level and ends with its open questions. The
+[structure/](structure/00-INDEX.md) pages give the same formats as raw byte
+facts, each with the test behind it.
 
 ## State of knowledge
 
@@ -42,6 +45,9 @@ differ.
 | Navmesh | tiles, polygons, road flag | most other flags |
 | Lights | position, colour, type, intensity, range, cones, hour mask | a few fields |
 | Road graph | nodes, links, lanes, speed limits, 34 of 51 node flags, junctions, traffic-light phases | some link flags, street names |
+| Audio | `ADAT` container, chunk tags, Opus framing | a few header fields; whether one container mixes Opus and PCM |
+| PSO data | big-endian section walk; one serialised object graph (30,683 records) | most type and field hashes |
+| Shaders | shader cache layout | shader names, decoding |
 
 ## Biggest open problems
 

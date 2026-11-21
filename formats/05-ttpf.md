@@ -15,7 +15,7 @@ map and vehicle textures live here, not in texture dictionaries.
 | 0x00 | `RDS5` | confirmed |
 | 0x04 | u32 n = chunk-table entries (last is a zero terminator) | confirmed |
 | 0x08 | u32 virtual size (low 32 bits only) | confirmed |
-| 0x0C | u32 0x16000000 | unknown meaning |
+| 0x0C | u32 0x16000000, or 0x16000001 on 18 stores (mostly the largest); meaning unknown | confirmed values |
 | 0x10 | u32 ?, u32 0 | unknown |
 | 0x18 | chunk table, 8 bytes per entry | confirmed |
 | `align_up(0x10 + 8n, 0x100)` | `ETPF` texture index | confirmed |
@@ -42,6 +42,9 @@ looks like a scrambled swizzle.
 | 0x18 | 268 | BC6H | BCPack |
 | 0x1C | 5,120 | BC7 | BCPack |
 | 0x00 | 5 | any | stored (read as is) |
+
+The non-zlib ids are compressed, not raw pages: their payloads measure
+about 7.95 bits/byte and do not match raw BCn block sizes (confirmed).
 
 ## `ETPF` index
 
@@ -113,6 +116,10 @@ worst: its layer normals and its RGB layer-blend mask are often flat.
   wrong (arrays/cubes, or another header).
 - Format 157 (one vehicle texture slot) is unknown.
 - Descriptor flag bits, `b >> 20`, the digest tables.
+- The 64-bit texture hash function. [structure/05](../structure/05-ttpf-stores.md)
+  reports one plain joaat case (`hauler` → `0x5A82F9AE`). A check of every
+  index hash in 46 stores found no hash whose low or high 32 bits equal that
+  value, so this is unconfirmed.
 
 
 ---

@@ -73,8 +73,24 @@ Archetype struct `82d6fc83` (184 B, GTA V `CBaseArchetypeDef`):
 recovered. The drawable's bounds equal the archetype bbox, so they can be
 linked by bbox (within 0.03 m). **The archive is stored in name order**,
 which breaks ties (e.g. between 64 m ground tiles that share a bbox).
-Result: 10,982 links (5,307 by unique bbox, 5,675 by bbox plus locality);
-25,676 remain ambiguous.
+
+Two more rules (2026-11-20):
+
+- **Embedded drawable name** (tried first, confirmed): about 8.8 K drawables
+  that the archive scan left unnamed still carry their own name in the
+  resource's name block. When joaat(name) is an unresolved archetype and
+  only one drawable carries it, that is the link. These 8,616 links agree
+  with all 14,777 earlier links they overlap. Their bounds often differ
+  from the archetype bbox, which is why the bbox rule missed them.
+- **Name-order gap** (fallback, inferred): an archetype whose name is
+  guessed (joaat of sibling-name stems plus common suffixes) has its
+  drawable between the named entries just before and after that name.
+  With exactly one candidate in the gap it is linked; with 2–6, the one
+  whose bounds clearly fit best within 0.5 m (3,645 links).
+
+Result: **15,412** of 92,925 linked (8,616 by embedded name, 3,645 by name
+order, 2,565 by unique bbox, 586 by bbox plus locality); 25,277 bbox
+matches remain ambiguous.
 
 `35abc248` (32 B, one per file, 6,304 files) is a named entity group
 (prefab) in group space; no map data places these groups.

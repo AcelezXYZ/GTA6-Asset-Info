@@ -27,7 +27,7 @@ stores). It does not obtain them for you. See [LEGAL.md](../LEGAL.md).
 
 | Setting | Flag | Environment variable | What it is |
 |---|---|---|---|
-| game root | `--game <dir>` | `SIXNG_GAME` | the game install. Always set it: the built-in default will not match your machine. |
+| game root | `--game <dir>` | `SIXNG_GAME` | the game install (the folder with the `.rpf` archives). There is no default: without the flag or variable the CLI uses the folder saved by `sixng-gui`, and otherwise stops with an error. |
 | work dir | `--work <dir>` | `SIXNG_WORK` | indexes (`<work>/index/`), GUI cache and the default map bake. Default `./work`. |
 
 Exports go wherever you point `-o/--out`.

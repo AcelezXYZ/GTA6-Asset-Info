@@ -42,8 +42,17 @@ terrain_multilayer.
 | `346394ea`, `7d4f12e2`, `7485dafb` | colour layers of the map blend shaders; `7485dafb` has opacity in alpha | inferred |
 | `0df47048` | secondary / detail colour, sRGB | inferred |
 | `c6f46e79` | packed: **R** binary mask (metalness?), **G** roughness or gloss, **B** AO / cavity, A unused | inferred |
-| `739e3d0d` | packed: R region mask, G nearly flat (puddle blobs), B roughness/height-like, A AO-like | inferred |
+| `739e3d0d` | packed data. On wet-capable surfaces: R region mask, G nearly flat (puddle blobs), B detailed, A AO-like. **Most maps are R = G = 0, B ≈ 0.5**, so B is not roughness: read that way, surfaces turn mirror-like. Treat the channel meaning as unknown | inferred |
 | `19df25d7` | format 157 (unknown), vehicle shader | unknown |
+
+**Placeholder textures** (confirmed). Many building materials point their
+packed-data slot (`739e3d0d`) at a 4 × 4 all-zero texture, and some point
+the normal slot at a 4 × 4 black one. Read literally, the first gives
+AO = 0 (black walls) and the second a broken normal. Ignore textures of
+8 px or less in the packed and normal slots. A few materials have only such
+placeholders, base colour included (e.g. one shader of
+`dn_20_int_hse_14_exterior`); they draw as black boxes and are probably
+non-visual proxies (inferred).
 
 ## Two-layer multilayer shaders (walls, ground pieces, blend decal)
 

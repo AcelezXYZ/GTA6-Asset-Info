@@ -27,7 +27,11 @@ map and vehicle textures live here, not in texture dictionaries.
 | file offset | `(a & 0xFFFFFF) << 8` | confirmed |
 | virtual offset | `0x1000 + (b & 0xFFFFF) × 0x4000 + (a >> 30) × 0x1000` | confirmed (2,810 chunks contiguous) |
 | codec id | bits 24–29 of `a` (table below) | confirmed |
-| `b >> 20` | ? | unknown |
+| `b >> 20` | trailing zero padding of the chunk, in bytes: stored length = next file offset − this file offset − (`b >> 20`) | confirmed (541/541 sampled zlib chunks end exactly at the RFC 1950 end-of-stream; 535/535 sampled BCPack chunks) |
+
+Use the indexed length, not a length found by stripping trailing zeros: some
+zlib streams end in a real `0x00` byte (2 of 541 sampled), and stripping cuts
+them short.
 
 A chunk runs to the next entry in both spaces. Missing the 4 KiB
 sub-offset in `a >> 30` puts a quarter of chunks 4–12 KiB early, which
@@ -115,7 +119,7 @@ worst: its layer normals and its RGB layer-blend mask are often flat.
   even row-major reads are scrambled, so the data location may also be
   wrong (arrays/cubes, or another header).
 - Format 157 (one vehicle texture slot) is unknown.
-- Descriptor flag bits, `b >> 20`, the digest tables.
+- Descriptor flag bits, the digest tables.
 - The 64-bit texture hash function. [structure/05](../structure/05-ttpf-stores.md)
   reports one plain joaat case (`hauler` → `0x5A82F9AE`). A check of every
   index hash in 46 stores found no hash whose low or high 32 bits equal that

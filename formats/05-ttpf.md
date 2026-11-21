@@ -69,7 +69,7 @@ unknown).
 | u32 d0 bits 0–13 / 14–27 / 28–31 | width − 1 / height − 1 / mip count − 1 | confirmed |
 | u32 d1 bits 0–2 | flags | unknown |
 | u32 d1 bits 3–9 | DXGI format | confirmed |
-| u32 d1 bit 10 | flag: set on some textures (e.g. 199 = 71 + 128 if bits 3–10 are read together) | unknown meaning |
+| u32 d1 bit 10 | flag, set on 598 of 357,115 textures (e.g. 199 = 71 + 128 if bits 3–10 are read together). Decoded with the normal layout for their format and tile mode, these textures come out as a mosaic, so the bit marks a different data layout | flag confirmed; layout unknown |
 | u32 d1 bits 20–23 | ? | unknown |
 | u32 d1 bits 24–27 | tile mode | confirmed |
 | u64 loc bits 0–20 | first 4 KiB page, counted after the 0x1000 header page (virtual offset = page × 0x1000 + 0x1000) | confirmed |
@@ -131,7 +131,8 @@ worst: its layer normals and its RGB layer-blend mask are often flat.
   even row-major reads are scrambled, so the data location may also be
   wrong (arrays/cubes, or another header).
 - Format 157 (one vehicle texture slot) is unknown.
-- Descriptor flag bits, the digest tables.
+- The data layout of textures with d1 bit 10 set (598 textures).
+- The other descriptor flag bits, the digest tables.
 - The 64-bit texture hash function. [structure/05](../structure/05-ttpf-stores.md)
   reports one plain joaat case (`hauler` → `0x5A82F9AE`). A check of every
   index hash in 46 stores found no hash whose low or high 32 bits equal that

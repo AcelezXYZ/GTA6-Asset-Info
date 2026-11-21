@@ -1,6 +1,6 @@
 # 5. `ttpf` texture stores
 
-*Part of the [SixNG format specification](README.md). Numbers as of 2026-11-20; confidence: confirmed / inferred / unknown.*
+*Part of the [SixNG format specification](README.md). Numbers as of 2026-11-21; confidence: confirmed / inferred / unknown.*
 
 `data/ttdb/**/*.ttpf`: 57 stores (maps, terrain, props, peds, vehicles, UI,
 weapons…), magic `RDS5`. Each store is a virtual byte space (can exceed
@@ -40,7 +40,7 @@ looks like a scrambled swizzle.
 | Codec id | Chunks | Content | Codec |
 |---|---|---|---|
 | 0x20 | 908,643 | any | zlib |
-| 0x04 | 100,026 | BC1 | BCPack |
+| 0x04 | 100,026 | BC1 | BCPack (decodes, [§6](06-bcpack.md#60-status)) |
 | 0x0C | 35 | BC3 | BCPack |
 | 0x10 | 77 | BC4 | BCPack |
 | 0x14 | 325 | BC5 | BCPack |
@@ -156,6 +156,13 @@ cubes (shop walls, ceiling and floor).
 
 ## Coverage (all 57 stores, 352,461 textures)
 
+**Since BC1 BCPack decodes** (2026-11-21; chunk-table check over the 46
+stores in the main install): mip 0 is readable for **98.4 %** of textures
+(86.8 % before). Maps 99.2 %, props 99.5 %, peds 99.2 %, interiors 99.7 %,
+vehicles 98.9 %, terrain 97.4 % (67.6 % before), UI 91.1 %. Flat fallbacks
+fall from 29,310 to 1,309 textures and low-mip exports from 14,443 to
+1,410. The table below is from before BC1 decoded:
+
 | | Textures |
 |---|---|
 | whole mip chain in zlib chunks | 298,332 (84.6 %): vehicles 96.7 %, maps 91.8 %, props/peds/interiors ~90 %, terrain 66 %, UI 57 % |
@@ -173,14 +180,18 @@ and mips go smallest first, so the small mips of a BCPack texture often sit
 in zlib chunks. SixNG exports the largest mip that lies entirely outside
 BCPack chunks (tail mips count as the whole tail block).
 
-**Who is hit:** BCPack hits linear `BC1_UNORM` almost only (normal, packed
-and mask data), not colour. Over all materials in `levels.rpf`, 37.9 % have
+**Who is hit** (before BC1 decoded; the BC1 cases below now decode):
+BCPack hits linear `BC1_UNORM` almost only (normal, packed and mask data),
+not colour. Over all materials in `levels.rpf`, 37.9 % have
 a flat slot and 22.6 % a low-mip slot, but weighted by placements that is
 5.0 % and 3.5 %; only 7,088 materials have a flat colour slot. Terrain is
 worst: its layer normals and its RGB layer-blend mask are often flat.
 
 ## Open questions
 
+- 1024 × 1024 tile-mode-1 textures come out with a scrambled top band of
+  about 320 rows, even from plain zlib chunks: the layout rule for that case
+  is not right yet.
 - 4-byte (RGBA8/BGRA8) and 2-byte (R16) layouts: no equation found, and
   even row-major reads are scrambled, so the data location may also be
   wrong (another header?).

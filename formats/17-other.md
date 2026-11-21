@@ -147,9 +147,10 @@ recovered.
   textures, one mip each, named only by 64-bit hash. Mostly sprite atlases:
   shop and brand logos, tattoo art, hair, beard and wheel icons, character
   portraits, in-game arcade and website art. Formats: BC1 3,801, BC7 3,383
-  plus 1,828 sRGB, BC3 928, BC4 57, A8 16. 5,751 decode completely, 1,144
-  partly (some 64 KiB chunks are BCPack: the top of the image decodes, the
-  rest is blank) and 3,118 lie only in BCPack chunks.
+  plus 1,828 sRGB, BC3 928, BC4 57, A8 16. With BC1 BCPack decoded
+  ([§6](06-bcpack.md)), 9,012 decode completely, 345 partly (some 64 KiB
+  chunks are BCPack in another format: the top of the image decodes, the
+  rest is blank) and 656 lie only in such chunks, mostly BC7.
 - **Fonts and HUD shapes**: `data/ttdb/graphics` holds single-channel font
   glyph atlases and HUD shapes.
 - **Minimap / pause map**: no tile set found in these stores or

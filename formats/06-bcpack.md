@@ -1,13 +1,33 @@
 # 6. BCPack
 
-*Part of the [SixNG format specification](README.md). Numbers as of 2026-11-20; confidence: confirmed / inferred / unknown.*
+*Part of the [SixNG format specification](README.md). Numbers as of 2026-11-21; confidence: confirmed / inferred / unknown.*
 
 BCPack is the texture codec of the Xbox Series hardware decompression
-unit. There is no public specification or decoder, and no
-plain copy of any affected texture exists elsewhere in the game. What
-follows was mapped from the streams alone, on BC1. **0 % of BCPack data is
-decoded as of 2026-11-20.** BC4, BC5 and BC7 streams have not been studied
-beyond their headers.
+unit. There is no public specification, and no plain copy of any affected
+texture exists elsewhere in the game.
+
+## 6.0 Status
+
+**BC1 decodes** (as of 2026-11-21). A codec `0x04` chunk decodes to plain
+BC1 blocks:
+
+- block count = the chunk's virtual size / 8;
+- the input is the stored bytes without the trailing zero pad (`b >> 20`
+  in the chunk entry, [§5](05-ttpf.md#chunk-entry-u32-a-u32-b));
+- the blocks come out in the texture's usual tiled order, so they are
+  detiled and decoded exactly as for zlib chunks.
+
+Confirmed: all 2,776 BCPack BC1 textures of one terrain store decode with
+no errors. With BC1 decoded, mip 0 is readable for 98.4 % of store
+textures (86.8 % before; [coverage](05-ttpf.md#coverage-all-57-stores-352461-textures)).
+
+**Not decoded:** the BC3, BC4, BC5, BC6H and BC7 codecs (`0x0C`, `0x10`,
+`0x14`, `0x18`, `0x1C`). About 0.8 % of textures have mip 0 in those.
+
+The rest of this page is the earlier mapping of the BC1 stream, made from
+the streams alone before BC1 decoded. It is partial and may not match a
+working decoder in every detail (lane count, models); it is kept for the
+other formats, which share the coder.
 
 ## 6.1 What is solved
 
@@ -128,8 +148,9 @@ symbols for N blocks). Hits at a free symbol count are chance.
 
 Ways in, best first:
 
-1. **Reference blocks.** Decoded mip-0 BC blocks for a few BCPack textures
-   (needs a reference decoder; none is public). With known symbols, each
+1. **Reference blocks.** Decoded mip-0 BC blocks for a few BCPack textures.
+   BC1 now has them; for the other formats, a texture stored both as
+   BCPack and as plain data would give them. With known symbols, each
    model and the read schedule can be fitted directly.
 2. **A one-block-difference pair**: two textures that differ in exactly one
    known block. Few tail-sharing pairs exist (15 groups out of 3,259 BC1
@@ -141,7 +162,8 @@ Ways in, best first:
    decodes per chunk (~6 × 10^12 symbol steps, roughly two weeks on one
    desktop), with no early pruning because every round mixes all lanes.
 
-Until then, use the lower-mip recovery ([§5](05-ttpf.md)) and the flat fallbacks.
+For BC3–BC7, use the lower-mip recovery ([§5](05-ttpf.md)) and the flat
+fallbacks until then.
 
 
 ---

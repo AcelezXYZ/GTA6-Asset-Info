@@ -190,8 +190,8 @@ Every texture in the `ttpf` stores, without going through a model.
 - In the model viewer's material list, **view** on a texture slot opens
   that texture here.
 
-Textures with no readable mip (BCPack, [§6](../formats/06-bcpack.md))
-cannot be previewed. Texture arrays and cube maps show slice 0 / face 0;
+BCPack BC1 textures decode; textures with no readable mip (the other
+BCPack formats, [§6](../formats/06-bcpack.md)) cannot be previewed. Texture arrays and cube maps show slice 0 / face 0;
 use `sixng ttpf --all-slices` for the others.
 
 ## More coming

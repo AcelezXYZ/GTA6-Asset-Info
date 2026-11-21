@@ -24,6 +24,7 @@ Entry is a pair `(u32 a, u32 b)`:
 | file offset | `(a & 0xFFFFFF) << 8` |
 | virtual offset | `0x1000 + (b & 0xFFFFF) × 0x4000 + (a >> 30) × 0x1000` |
 | codec id | bits 24..29 of `a` |
+| trailing padding | `b >> 20` bytes after the chunk's data ([formats/05](../formats/05-ttpf.md)) |
 
 A chunk runs to the next entry in both address spaces. Omitting the 4 KiB sub-offset
 (`(a >> 30) × 0x1000`) places a quarter of chunks 4–12 KiB early, which presents as a scrambled
@@ -49,6 +50,10 @@ trailer. Section type bytes decide the encoding of each chunk: type bytes whose 
 The descriptor's second u32 holds the format in bits 3..9: `((u1 >> 3) & 0x7F)` is the DXGI format
 enum. This held for 357,115 of 357,115 descriptors, with no unknown values.
 
+Bits 10..19 of the same u32 are the array size − 1: 6 on 567 cube maps, 2–64 on 130 texture
+arrays, 0 elsewhere. Arrays and cube maps have their own data layouts; see
+[formats/05, Arrays and cube maps](../formats/05-ttpf.md#arrays-and-cube-maps).
+
 Each store's index is keyed by a 64-bit texture hash. Those hashes appear as plain joaat values in
 at least one confirmed case (`hauler` → `0x5A82F9AE`), so the index is name-keyed rather than
 path-keyed.
@@ -60,6 +65,5 @@ zero unaccounted bytes in every file. Total stored size 57.94 GiB.
 
 ## Open questions
 
-- The meaning of `b >> 20` in each chunk entry.
 - BCPack: no decoder exists publicly; roughly 10% of archive bytes are BCPack-encoded.
 - The 64-bit texture hash function for values other than the confirmed joaat case.

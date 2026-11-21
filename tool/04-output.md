@@ -10,7 +10,8 @@
   textures/<archive>/<name>_<off>/    a texture dictionary
     dictionary.json
     <texture>.png / .dds / .json
-  textures/ttpf/<hash>.png / .json    store textures, shared by all models (written once)
+  textures/ttpf/<hash>.png / .json    store textures, shared by all models (written once;
+                                      slice 0 / face 0 of arrays and cube maps)
   models/<archive>/<name>_<off>/      a drawable or fragment
     model.glb, model_lodN.glb         triangle meshes per LOD
     points.glb                        only for mesh blobs with no index buffer

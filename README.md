@@ -38,7 +38,7 @@ differ.
 | RPF9 archives | header layout; payload is plain zlib | the table of contents is encrypted, so there are no file names or paths |
 | Resources | system/graphics pages, pointers, names inside resources | some unnamed resources |
 | Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts; BCPack BC1 (98.4 % of 352 K store textures readable at full size) | **BCPack** BC3–BC7 (0.8 % of textures); 4-/2-byte layouts |
-| Models | vertex streams, meshlet index buffers, LODs, skeletons, skinning (incl. u16 bone indices), shaders' texture references; shader names (all) and most parameter names | texture names (64-bit hash), constant buffers |
+| Models | vertex streams, meshlet index buffers, LODs, skeletons, skinning (incl. u16 bone indices; ped clothing with 8 influences through a bone palette to the shared ped skeleton), shaders' texture references; shader names (all) and most parameter names | texture names (64-bit hash), constant buffers |
 | Vehicles | parts, damage and mod-kit parts, wheel mounts; model info, spawn configurations (body colour, rim, tyre), weighted paint-colour lists, handling records | how the wheel scale sizes the shared wheels, secondary colours, liveries, many handling fields |
 | Map data | self-describing meta resources; entities, LOD hierarchy and LOD parents (99 %), archetypes, grass and prop batches, interiors with rooms and entity sets | prefab placement, some hashed fields |
 | Collision | bounds geometry and primitives, surface ids; inferred surface categories for 98.3 % of area | surface names (unknown hash) |

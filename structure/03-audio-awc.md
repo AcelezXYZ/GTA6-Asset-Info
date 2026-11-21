@@ -62,9 +62,50 @@ Music/multi-channel streams use 512 KiB blocks with 2,048-byte sub-blocks, selec
 | 0x0E | u16 loop end |
 | 0x10 | u16 play end |
 | 0x12 | u8 play begin |
-| 0x13 | u8 codec (0x00 = Opus) |
+| 0x13 | u8 codec (0x00 = Opus): earlier reading, **superseded** for the 32-byte form by the decoding evidence below |
 | 0x14 | u32 peak (24-byte form) |
-| 0x1C | u32 extra (32-byte form) |
+| 0x1C | 32-byte form: u8 codec id, u8 channel count, u16 0 (see below) |
+
+**32-byte form, codec and channels (confirmed by decoding):** the codec id is
+the u8 at `0x1C` and the channel count the u8 at `0x1D` (1 mono, 2 stereo).
+
+| Codec id | Codec | Check |
+|---|---|---|
+| 0 | PCM signed 16-bit LE | data bytes / samples = 2.000000 on every stream |
+| 1 | ADPCM | not present in this build |
+| 2 | PCM float32 LE | data bytes / samples = 4.000000 on every stream |
+| 5 | XMA2 | every sampled stream decodes as XMA2; 32,000 Hz mono |
+| 11 | Opus | packets start `0xF8` (mono) or `0xFC` (stereo), 20 ms each |
+
+Over 1,606,240 streams: Opus is about 99.3 % of payload bytes, XMA2 0.45 %,
+float32 PCM 0.26 %, PCM16 0.001 %. One container can hold streams of more than
+one codec: per-codec container counts sum to 7,162 over 7,159 containers
+(confirmed).
+
+## Music stream-format chunk (`0x48`)
+
+Long-form and music streams carry a `0x48` chunk instead: u32 block count, u32
+block size (`0x00080000` = 512 KiB), u32 entry count (1–8), then 16-byte
+entries:
+
+| Off | Meaning |
+|---|---|
+| 0x00 | u32 stream id |
+| 0x04 | u32 (not a usable duration) |
+| 0x08 | u16 (gain-like) |
+| 0x0A | u16 sample rate |
+| 0x0C | u8 codec id (same ids as above) |
+| 0x0D | u8 channel count |
+| 0x0E | u16 `0xFFFF` |
+
+## Markers chunk (`0xBD`)
+
+16-byte records: u32 name hash (joaat of the lowercase cue name, e.g.
+`trackid` `0xA6D93246`, `beat` `0xE89AE78C`, `intro` `0xDA8F5F53`, `outro`
+`0x5D40B28D`), f32 value, u32 sample offset (48 kHz frames), u32 0. For
+`trackid` the value is the song id stored as a float. Region cues use
+`joaat("start")` `0x84DC271F` / `joaat("end")` `0xB0C485D7` as the value, in
+start/end pairs.
 
 ## Non-Opus containers
 
@@ -75,5 +116,4 @@ codec byte rather than assume Opus.
 
 ## Open questions
 
-- Whether `0x55` payloads can mix Opus and PCM inside one container.
 - The meaning of `headroom` and of the `0x00400000` word.

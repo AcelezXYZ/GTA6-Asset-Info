@@ -48,12 +48,17 @@ u32 magic `0x4042` at 0.
 **Position** (one u64 q per vertex; RAGE Z-up, metres):
 
 ```
-x = ((q >> 16) & 0xFFFF) * 256 * step.x + base.x
-y = ((q >> 32) & 0xFFFF) * 256 * step.y + base.y
-z =  (q >> 48)           *       step.z + base.z
+x = ((((q >> 16) & 0xFFFF) << 8) | ( q       & 0xFF)) * step.x + base.x
+y = ((((q >> 32) & 0xFFFF) << 8) | ((q >> 8) & 0xFF)) * step.y + base.y
+z =  (q >> 48)                                       * step.z + base.z
 ```
 
-Bits 0–15 are unknown. **Axis rotation (confirmed):** the quantiser puts
+Bits 0–15 hold the low byte of x (bits 0–7) and of y (bits 8–15), giving x and
+y 24 bits of precision (confirmed: with them, decoded geometry reproduces the
+stored per-geometry bounding boxes to about 1.5e-5 relative over 782
+geometries; without them x and y are off by up to 255 steps).
+
+**Axis rotation (confirmed):** the quantiser puts
 the flattest model axis of each blob in the 16-bit z slot, and the header
 u32 at +0x6C names that axis (corrected 2026-11-20):
 
@@ -193,7 +198,7 @@ pointer leads to a 32-byte texture reference: ptr, **u64 texture hash**
 
 ## Open questions
 
-- Position bits 0–15; normal top 12 bits; slots 12, 13, 17.
+- Normal top 12 bits; slots 12, 13, 17.
 - Occluder and water-vegetation LOD buffers (another format).
 - Shader constant-buffer layout (would give cable thickness, paint and
   material constants).

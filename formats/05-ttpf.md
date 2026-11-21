@@ -41,11 +41,18 @@ looks like a scrambled swizzle.
 |---|---|---|---|
 | 0x20 | 908,643 | any | zlib |
 | 0x04 | 100,026 | BC1 | BCPack |
-| 0x0C, 0x10 | 35, 77 | probably BC3, BC4 | BCPack |
+| 0x0C | 35 | BC3 | BCPack |
+| 0x10 | 77 | BC4 | BCPack |
 | 0x14 | 325 | BC5 | BCPack |
 | 0x18 | 268 | BC6H | BCPack |
 | 0x1C | 5,120 | BC7 | BCPack |
 | 0x00 | 5 | any | stored (read as is) |
+
+BCPack ids are the BC number × 4 (`0x04` BC1 … `0x1C` BC7); zlib is `0x20`.
+Confirmed by joining every chunk to the texture whose data it holds and
+reading that texture's descriptor format: `0x0C` chunks belong only to DXGI
+77/78 (BC3) textures (35/35), `0x10` only to DXGI 80 (BC4) (77/77), `0x04` to
+BC1, `0x14` to BC5, `0x18` to BC6H, `0x1C` to BC7.
 
 The non-zlib ids are compressed, not raw pages: their payloads measure
 about 7.95 bits/byte and do not match raw BCn block sizes (confirmed).
@@ -61,7 +68,8 @@ unknown).
 |---|---|---|
 | u32 d0 bits 0–13 / 14–27 / 28–31 | width − 1 / height − 1 / mip count − 1 | confirmed |
 | u32 d1 bits 0–2 | flags | unknown |
-| u32 d1 bits 3–10 | DXGI format | confirmed |
+| u32 d1 bits 3–9 | DXGI format | confirmed |
+| u32 d1 bit 10 | flag: set on some textures (e.g. 199 = 71 + 128 if bits 3–10 are read together) | unknown meaning |
 | u32 d1 bits 20–23 | ? | unknown |
 | u32 d1 bits 24–27 | tile mode | confirmed |
 | u64 loc bits 0–20 | first 4 KiB page, counted after the 0x1000 header page (virtual offset = page × 0x1000 + 0x1000) | confirmed |
@@ -79,6 +87,10 @@ next texture.
 | 1, 2, 3 | `SW_4KB_S` | 4 KiB | 16-byte: `y0 y1 x0 x1 y2 x2 y3 x3` · 8-byte: `x0 y0 y1 x1 x2 y2 x3 y3 x4` |
 
 - Blocks are row-major; no pipe/bank XOR.
+- Independent check of tile mode 0: decoded with these `SW_64KB_D` orders,
+  textures are smoother than with the `SW_64KB_S` equations on 161/200 BC1/BC4
+  and 191/199 BC3/BC5/BC7 textures (median block-edge error 5.2 vs 11.4 and
+  2.9 vs 7.9).
 - **Mips go smallest first; mip 0 is last.**
 - **Mip tail:** a mip whose element size is ≤ (block width / 2, block
   height) and that is among the last `max_mips_in_tail` mips (8 for 4 KiB

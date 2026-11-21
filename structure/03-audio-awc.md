@@ -80,6 +80,31 @@ the u8 at `0x1C` and the channel count the u8 at `0x1D` (1 mono, 2 stereo).
 Over 1,606,240 streams: Opus is about 99.3 % of payload bytes, XMA2 0.45 %,
 float32 PCM 0.26 %, PCM16 0.001 %. One container can hold several codecs.
 
+## Music stream-format chunk (`0x48`)
+
+Long-form and music streams carry a `0x48` chunk instead: u32 block count, u32
+block size (`0x00080000` = 512 KiB), u32 entry count (1–8), then 16-byte
+entries:
+
+| Off | Meaning |
+|---|---|
+| 0x00 | u32 stream id |
+| 0x04 | u32 (not a usable duration) |
+| 0x08 | u16 (gain-like) |
+| 0x0A | u16 sample rate |
+| 0x0C | u8 codec id (same ids as above) |
+| 0x0D | u8 channel count |
+| 0x0E | u16 `0xFFFF` |
+
+## Markers chunk (`0xBD`)
+
+16-byte records: u32 name hash (joaat of the lowercase cue name, e.g.
+`trackid` `0xA6D93246`, `beat` `0xE89AE78C`, `intro` `0xDA8F5F53`, `outro`
+`0x5D40B28D`), f32 value, u32 sample offset (48 kHz frames), u32 0. For
+`trackid` the value is the song id stored as a float. Region cues use
+`joaat("start")` `0x84DC271F` / `joaat("end")` `0xB0C485D7` as the value, in
+start/end pairs.
+
 ## Non-Opus containers
 
 Not every `ADAT` file carries Opus. Observed exceptions: containers with zero streams and a

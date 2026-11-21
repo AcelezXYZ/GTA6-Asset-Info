@@ -66,10 +66,10 @@ unknown).
 
 | Descriptor field | Meaning | Confidence |
 |---|---|---|
-| u32 d0 bits 0–13 / 14–27 / 28–31 | width − 1 / height − 1 / mip count − 1 | confirmed |
+| u32 d0 bits 0–13 / 14–27 / 28–31 | width − 1 / height − 1 / mip count − 1 (on cube maps, tile modes 9–12, the field is the mip count itself: cubes marked "2" store one mip per face) | confirmed |
 | u32 d1 bits 0–2 | flags | unknown |
 | u32 d1 bits 3–9 | DXGI format | confirmed |
-| u32 d1 bit 10 | flag, set on 598 of 357,115 textures (e.g. 199 = 71 + 128 if bits 3–10 are read together). Decoded with the normal layout for their format and tile mode, these textures come out as a mosaic, so the bit marks a different data layout | flag confirmed; layout unknown |
+| u32 d1 bits 10–19 | array size − 1 (0 on 356,418 of 357,115 textures). "Bit 10" alone is the low bit of this field: it is set on every array with an even size (598 textures). Sizes: 6 = cube maps (567); 2 (19), 3 (99), 8 (4), 16 (1), 32 (6), 48 (2), 64 (2) = texture arrays. Layouts in [Arrays and cube maps](#arrays-and-cube-maps) | confirmed (the sizes match the store spacing; every slice decodes to a separate, coherent image) |
 | u32 d1 bits 20–23 | ? | unknown |
 | u32 d1 bits 24–27 | tile mode | confirmed |
 | u64 loc bits 0–20 | first 4 KiB page, counted after the 0x1000 header page (virtual offset = page × 0x1000 + 0x1000) | confirmed |
@@ -85,6 +85,7 @@ next texture.
 |---|---|---|---|
 | 0 | `SW_64KB_D` | 64 KiB | 16-byte: `x0 y0 x1 y1 y2 x2 y3 x3 y4 x4 y5 x5` · 8-byte: `x0 y0 x1 x2 y1 y2 x3 y3 x4 y4 x5 y5 x6` |
 | 1, 2, 3 | `SW_4KB_S` | 4 KiB | 16-byte: `y0 y1 x0 x1 y2 x2 y3 x3` · 8-byte: `x0 y0 y1 x1 x2 y2 x3 y3 x4` |
+| 9, 10, 11, 12 | `SW_4KB_S`, cube maps only: tile mode − 8 = number of stored copies (below) | 4 KiB | as modes 1–3 |
 
 - Blocks are row-major; no pipe/bank XOR.
 - Independent check of tile mode 0: decoded with these `SW_64KB_D` orders,
@@ -104,6 +105,55 @@ next texture.
 Checked per store and format: mip n + 1 equals mip n downsampled (mean
 error 0–4 levels) on BC1, BC3, BC4, BC5 and BC7 in every mode.
 
+## Arrays and cube maps
+
+The array size is d1 bits 10–19 + 1. Arrays and cube maps are stored in two
+different ways (both confirmed).
+
+**Texture arrays (tile modes 0 and 1; 2–64 slices; 130 textures)** are stored
+level by level, smallest first, with each level's slices back to back:
+the mip-tail block of every slice, then the smallest non-tail mip of every
+slice, and so on, ending with mip 0 of every slice. With the single-slice
+layout above:
+
+```
+address(mip m, slice s) = offset(m) × slices + s × size(m)
+```
+
+where `offset(m)` and `size(m)` are the single-slice offset and padded size
+(the whole tail block for tail mips). The total is slices × the single-slice
+size, which matches the store spacing exactly (e.g. 256×256 BC5, 9 mips,
+32 slices = 4 MiB). Decoding slice 0 with the single-slice layout reads
+other slices' tail blocks where mip 0 should be, which is the mosaic. Seen:
+cloth and detail-map sets (48 slices), pattern sets, and 2–3-slice ped face
+wrinkle normal maps.
+
+**Cube maps (tile modes 9–12; 6 faces; 567 textures)** use `SW_4KB_S` and
+store **tile mode − 8 complete copies of the cube**, smallest first. Split
+the mip chain into *units*, smallest first: the mip-tail block (if any),
+then each non-tail mip. With u units and c = tile mode − 8 copies, copy k
+(0 … c − 1) holds the smallest u − c + 1 + k units. Inside a copy the faces
+follow each other, each face with its own chain (tail block, then the
+non-tail mips up to that copy's top mip, as in the single-slice layout). The
+last copy is the full-resolution cube.
+
+- Each copy is one chunk of the store. A copy larger than 128 KiB is padded
+  to a multiple of 64 KiB; smaller copies are not padded. So the full copy
+  starts at the sum of the padded sizes of the copies before it, which is
+  also the virtual offset of the chunk that starts c − 1 chunks after the
+  texture. The two agree on all 533 cubes with a supported format.
+- Example, 512×512 BC1, 7 mips (128×128 elements; tail + 32×32 + 64×64 +
+  128×128 elements = 1 + 2 + 8 + 32 pages per face), tile mode 12: copies
+  of 6, 18, 66 (padded to 80) and 258 pages; the full copy starts at page
+  104.
+- Example, 128×128 BC7, tile mode 11: copies of 6, 12 and 36 pages (padded
+  to 48); the full copy starts at page 18.
+- Tile mode 9 (one copy) is a plain face-by-face cube: e.g. 16×16 and 32×32
+  cubes, whose whole chain is one tail block per face.
+
+Seen: light cookies (`lighting.ttpf`), sky/star cubes and interior room
+cubes (shop walls, ceiling and floor).
+
 ## Coverage (all 57 stores, 352,461 textures)
 
 | | Textures |
@@ -113,6 +163,10 @@ error 0–4 levels) on BC1, BC3, BC4, BC5 and BC7 in every mode.
 | mip 0 in BCPack, a lower mip in zlib (exported at that mip) | 14,441 (4.1 %) |
 | every mip in BCPack | 29,310 (8.3 %) |
 | unsupported 4-/2-byte formats or special tile modes 9–12 | 3,412 (1.0 %) |
+
+The coverage table predates the array and cube-map layouts. With them, 563 of
+the 567 cube maps and 118 of the 130 arrays decode (the rest have 4-/2-byte
+formats, except three cubes with more copies than their mip chain has units).
 
 **Lower-mip recovery:** chunks are 4 KiB–4 MiB ranges, not whole textures,
 and mips go smallest first, so the small mips of a BCPack texture often sit
@@ -129,9 +183,11 @@ worst: its layer normals and its RGB layer-blend mask are often flat.
 
 - 4-byte (RGBA8/BGRA8) and 2-byte (R16) layouts: no equation found, and
   even row-major reads are scrambled, so the data location may also be
-  wrong (arrays/cubes, or another header).
+  wrong (another header?).
 - Format 157 (one vehicle texture slot) is unknown.
-- The data layout of textures with d1 bit 10 set (598 textures).
+- Three cube maps declare more copies (tile mode − 8) than their mip chain
+  has units (256×256 with "3" or "4" mips, 128×128 with "3"); how they are
+  stored is unknown.
 - The other descriptor flag bits, the digest tables.
 - The 64-bit texture hash function. [structure/05](../structure/05-ttpf-stores.md)
   reports one plain joaat case (`hauler` → `0x5A82F9AE`). A check of every

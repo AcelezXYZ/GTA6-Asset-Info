@@ -169,6 +169,9 @@ sixng ttpf vehicles/ttdb_vehicles.ttpf --pretty
 # Decode textures by hash, or the first N, at a mip level
 sixng ttpf vehicles/ttdb_vehicles.ttpf --hash 0123456789abcdef --out tex
 sixng ttpf maps --first 20 --mip 1 --out tex
+# Texture arrays and cube maps: every slice / face as <hash>_m<mip>_s<slice>.png
+# (without --all-slices only slice 0 is written)
+sixng ttpf lighting --hash 0123456789abcdef --all-slices --out tex
 ```
 
 ### Research helpers

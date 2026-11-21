@@ -164,7 +164,8 @@ Every texture in the `ttpf` stores, without going through a model.
   that texture here.
 
 Textures with no readable mip (BCPack, [§6](../formats/06-bcpack.md))
-cannot be previewed.
+cannot be previewed. Texture arrays and cube maps show slice 0 / face 0;
+use `sixng ttpf --all-slices` for the others.
 
 ## More coming
 

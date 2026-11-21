@@ -1,12 +1,29 @@
 # 12. Material classes and texture slots
 
-*Part of the [SixNG format specification](README.md). Numbers as of 2026-11-20; confidence: confirmed / inferred / unknown.*
+*Part of the [SixNG format specification](README.md). Numbers as of 2026-11-21; confidence: confirmed / inferred / unknown.*
 
-Shader and parameter names are hashes with an **unknown hash function**.
-About 1,500 candidate names were tried with joaat (both cases), FNV-1/1a,
-CRC-32, Murmur3, djb2, sdbm, Adler and byte-swapped forms, with no match.
-The compiled shader cache holds no names. 344 shaders over 254 K drawables
-(1.83 M shader instances) in `levels.rpf` + `packs.rpf`.
+Shader and parameter names are **joaat of the lower-case name** (confirmed):
+`standard` = `bcf03fc1`, `diffusetex` = `c8e8c282`, `bumptex` = `1e77bf4c`.
+Where the names come from:
+
+- a shader preset list in `common.rpf` names all 344 shaders;
+- uncompressed blocks in `shaders.rpf`, before the compressed cache, hold
+  NUL-terminated technique, sampler and texture names and 24-byte binding
+  records. Texture bindings are `{texture hash, parameter hash, 02 01 xx xx,
+  00 80 00 00}`, e.g. (`diffusetexture`, `diffusetex`);
+- a word search over likely parts. Per-layer sets (`lyr0…`, `lyr1…`) check
+  themselves; names that differ only in a final digit do not, because joaat
+  states collide before the last character.
+
+77 of 229 parameters resolve, about 75 % of uses. 344 shaders over 254 K
+drawables (1.83 M shader instances) in `levels.rpf` + `packs.rpf`.
+
+Shader names give the families directly: emissive (`standard_emissive*`,
+`signs_emissive`, `*_emissive_layer*`, with an `emissivetex` slot), glass
+(`standard_vehicle_glass`, `standard_glass_breakable*`), water
+(`standard_alpha_water`, `water_micro_geom`, `standard_alpha_waterfall`),
+decals (`standard_decal_hbb`), peds (`ped_standard_skin`) and vehicles
+(`standard_vehicle_2lyr`).
 
 ## Shader record bytes +0x38..+0x3F
 
@@ -26,24 +43,24 @@ The compiled shader cache holds no names. 344 shaders over 254 K drawables
 | 0x40 | water | 14.6 K | 2 |
 | 0x10, 0x20 | one vehicle shader | — | 1 |
 
-**Emissive has no bucket bit**; only known shader families mark it. A
-table of known families adds car_paint, window, glass, emissive, water,
-terrain_multilayer.
+**Emissive has no bucket bit**; only the shader family marks it (names
+above). A table of known families adds car_paint, window, glass, emissive,
+water, terrain_multilayer.
 
 ## Texture slots
 
-| Parameter | Holds | Confidence |
-|---|---|---|
-| `c8e8c282` | base colour, sRGB | confirmed |
-| `1e77bf4c` | normal, BC1 (B = 255) | confirmed |
-| `84c69350`, `58b6e707` | normal, BC5 | confirmed |
-| `de84c011`, `4c759bf1`, `27dbd2be`, `7e1f7f44`, `1a016c7e` | terrain layer / detail normals | inferred |
-| `c075f9b6` | terrain RGB layer-blend mask | inferred |
-| `346394ea`, `7d4f12e2`, `7485dafb` | colour layers of the map blend shaders; `7485dafb` has opacity in alpha | inferred |
-| `0df47048` | secondary / detail colour, sRGB | inferred |
-| `c6f46e79` | packed: **R** binary mask (metalness?), **G** roughness or gloss, **B** AO / cavity, A unused | inferred |
-| `739e3d0d` | packed data. On wet-capable surfaces: R region mask, G nearly flat (puddle blobs), B detailed, A AO-like. **Most maps are R = G = 0, B ≈ 0.5**, so B is not roughness: read that way, surfaces turn mirror-like. Treat the channel meaning as unknown | inferred |
-| `19df25d7` | format 157 (unknown), vehicle shader | unknown |
+| Parameter | Name | Holds | Confidence |
+|---|---|---|---|
+| `c8e8c282` | `diffusetex` | base colour, sRGB | confirmed |
+| `1e77bf4c` | `bumptex` | normal, BC1 (B = 255) | confirmed |
+| `84c69350`, `58b6e707` | `lyr0normaltex`, `lyr1normaltex` | normal, BC5 | confirmed |
+| `27dbd2be`, `7e1f7f44`, `4c759bf1`, `de84c011`, `1a016c7e` | `bumptexture_layer0`–`3`, `tintbumptexture` | terrain layer / detail normals | inferred |
+| `c075f9b6` | `lookuptexture` | terrain RGB layer-blend mask | inferred |
+| `346394ea`, `7d4f12e2`, `7485dafb` | `lyr0diffusetex`, `lyr1diffusetex`, `dirtdiffusetex` | colour layers of the map blend shaders; `7485dafb` has opacity in alpha | inferred |
+| `0df47048` | `diffusetex2` | secondary / detail colour, sRGB | inferred |
+| `c6f46e79` | `speculartex` | packed: **R** binary mask (metalness?), **G** roughness or gloss, **B** AO / cavity, A unused | inferred |
+| `739e3d0d` | `speculartex2` | packed data. On wet-capable surfaces: R region mask, G nearly flat (puddle blobs), B detailed, A AO-like. **Most maps are R = G = 0, B ≈ 0.5**, so B is not roughness: read that way, surfaces turn mirror-like. Treat the channel meaning as unknown | inferred |
+| `19df25d7` | ? | format 157 (unknown), vehicle shader | unknown |
 
 **Placeholder textures** (confirmed). Many building materials point their
 packed-data slot (`739e3d0d`) at a 4 × 4 all-zero texture, and some point
@@ -56,8 +73,10 @@ non-visual proxies (inferred).
 
 ## Two-layer multilayer shaders (walls, ground pieces, blend decal)
 
-Shaders `b217b263`, `1251cae5`, `cd8ceb5e`, `77d8ab27` (12 parameters) and
-`4f0b809b` (terrain blend decal) blend two full texture sets by vertex
+Shaders `standard_2lyr_pxm` (`b217b263`), `standard_2lyr_pxm_ground`
+(`1251cae5`), `standard_2lyr_ground` (`cd8ceb5e`), `standard_2lyr`
+(`77d8ab27`) (12 parameters) and `standard_2lyr_pxm_decal_ground`
+(`4f0b809b`, terrain blend decal) blend two full texture sets by vertex
 colour. Derived from texture sizes and vertex/UV statistics over 4.7 K
 materials, not from shader code (as of 2026-11-20).
 
@@ -73,20 +92,21 @@ materials, not from shader code (as of 2026-11-20).
 | data maps (BC7) | R varies, G about constant per texture, B and A vary | — | unknown meaning |
 | two-channel maps (BC1) | R = 0, G and B anti-correlated | — | unknown meaning |
 
-The 17-parameter ground shaders (`360e396b`, `b21f1ba5`, `61e09df7`) are a
-different, many-layer family and are not mapped yet.
+The 17-parameter ground shaders are a different family, four layers by
+their names (`standard_uber_4lyr_spx_dm_hbb`, `standard_uber_4lyr_pxm_hbb_fixuv1`,
+`standard_uber_4lyr_dpm_dm_hbb`), and are not mapped yet.
 
 **Normal maps are DirectX convention (green = +Y down)** (confirmed by an
 integrability test on 270 of 300 maps). Invert G for glTF/OpenGL.
 
 ## Open questions
 
-- The hash function (would name shaders, parameters and collision
-  surfaces, [§13](13-collision.md)).
+- 152 of 229 parameter names; the collision surface hash
+  ([§13](13-collision.md)) is a different, unsolved one.
 - Whether `c6f46e79` G is roughness or gloss; emissive and glass flags for
   unknown shader families.
 
 
 ---
 
-← [11. Vehicle paint](11-vehicle-paint.md) · [Index](README.md) · [13. Collision and surface categories](13-collision.md) →
+← [11. Vehicle paint and vehicle tables](11-vehicle-paint.md) · [Index](README.md) · [13. Collision and surface categories](13-collision.md) →

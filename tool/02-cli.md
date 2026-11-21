@@ -1,6 +1,6 @@
 # CLI
 
-*Part of the [SixNG tool guide](README.md). Numbers and timings as of 2026-11-20.*
+*Part of the [SixNG tool guide](README.md). Numbers and timings as of 2026-11-21.*
 
 ## CLI basics
 
@@ -149,6 +149,19 @@ archive when present. `world all` runs them in the right order.
 # which placements, lights and extract then use automatically.
 sixng link-archetypes levels
 
+# Archetype LOD distances and resolved LOD parents (~2.5 min). Writes
+# <work>/index/archetype_lod.jsonl and lod_parents.jsonl; re-run placements to pick them up.
+sixng lod-links levels
+
+# Interior membership: per map file its space (world / interior-local / group-local),
+# per entity its interior, room and entity set (~1.5 min). Writes <work>/index/interior_entities.jsonl.
+sixng interior-entities levels
+
+# Name dictionary for shader, parameter and meta field hashes, built from the install
+# (~2 s, needs the common index). Writes <work>/names/names.json; exports and the app use it.
+sixng names
+sixng names --lookup bcf03fc1,c8e8c282
+
 # BCPack texture gaps: every material with flat or low-mip textures (~6 min).
 # Uses placements, batches, collision and surfaces from the same output dir.
 sixng texture-gaps levels -o out --file out/texture_gaps.json --placements out/placements/levels
@@ -157,8 +170,20 @@ sixng texture-gaps levels -o out --file out/texture_gaps.json --placements out/p
 sixng meta data -o out
 sixng meta levels -o out --dump --limit 100
 
-# Shader census: per shader hash, use count, parameters, texture formats, record flags
+# Shader census: per shader hash and name, use count, parameters, texture formats, record flags
 sixng shaders levels -o shaders.json
+```
+
+### Metadata and vehicles
+
+```powershell
+# PSO files to JSON: <out>/pso/data/<offset>.json (a few seconds)
+sixng pso data --out out
+# Vehicle handling records: <out>/pso/handling.json
+sixng handling data --out out
+# Vehicle model info (wheel scale and type), spawn configurations (colour, rim, tyre, parts)
+# and paint palettes: <out>/vehicles/vehicles.json
+sixng vehicles packs --out out
 ```
 
 ### Texture stores

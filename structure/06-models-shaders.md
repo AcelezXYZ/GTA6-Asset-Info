@@ -72,7 +72,8 @@ on the classifier used; the instruction stream itself is unaffected.
 
 ## Open questions
 
-- The hash function for shader and shader-parameter names (values appear as opaque 64-bit hashes).
+- The 64-bit hashes in the shader cache. (The 32-bit shader and parameter hashes in drawables are
+  joaat of the lower-case name; see [formats §12](../formats/12-materials.md).)
 - Whether meshlet vertex data uses a dictionary encoding (a small shared u16 vocabulary is
   observed across bodies, suggesting one).
 - BCPack decoding for compressed surfaces.

@@ -175,11 +175,11 @@ Bone, joint and attach-point names (`suspension_lf`,
 
 | Off | Meaning | Confidence |
 |-----|---------|-----------|
-| 0x00 | u32 shader name hash | confirmed (hash function unknown) |
+| 0x00 | u32 shader name hash = joaat of the lower-case name (`standard` = `bcf03fc1`) | confirmed (all 344 shaders) |
 | 0x04 | `"atem"` | confirmed |
 | 0x08 | ptr → constant buffer (~0x160 bytes of floats) | inferred (layout unknown) |
 | 0x10 | ptr → per-parameter slot pointers | confirmed |
-| 0x20 | ptr → parameter table: u8 ?, u8 count, …, then count × (u32 param hash, u32 data offset) | confirmed |
+| 0x20 | ptr → parameter table: u8 ?, u8 count, …, then count × (u32 param hash, u32 data offset); param hash = joaat of the lower-case name (`diffusetex` = `c8e8c282`) | confirmed |
 | 0x38..0x3F | flags, see [§12](12-materials.md) | confirmed (bytes 1, 4) |
 
 A texture parameter's slot points to a 0x50-byte struct whose +0x30
@@ -191,8 +191,11 @@ pointer leads to a 32-byte texture reference: ptr, **u64 texture hash**
 - **Wheels** are not in the car fragment. They are shared models
   `rim_<class>_NNN` and `tyre_<class>_NNN` (with `_hi`/`_mid`) authored for
   the left-front wheel at unit scale (rim radius 0.5, tyre 0.88). The game
-  mirrors and scales them per vehicle; the scale and rim choice are not
-  decoded. The wheel bones' pivots give the mount points.
+  mirrors and scales them per vehicle. Each spawn configuration names its
+  rim and tyre, and the model info has `wheelScale` / `wheelScaleRear`
+  ([§11](11-vehicle-paint.md#vehicle-tables)); how that value scales the
+  shared models is not established. The wheel bones' pivots give the mount
+  points.
 - **Damage parts**: separate fragments `<car>_dmg_mod_<part>_NNN`.
   **Mod-kit parts**: `<car>_<part>_<kit>`. Both with `_hi`/`_mid`.
 
@@ -202,8 +205,8 @@ pointer leads to a 32-byte texture reference: ptr, **u64 texture hash**
 - Occluder and water-vegetation LOD buffers (another format).
 - Shader constant-buffer layout (would give cable thickness, paint and
   material constants).
-- Shader, parameter and texture name hash function.
-- How damage parts are swapped in; wheel size and rim choice; handling.
+- The 64-bit texture name hash; 152 of 229 parameter names.
+- How damage parts are swapped in; how `wheelScale` sizes the shared wheels.
 
 
 ---

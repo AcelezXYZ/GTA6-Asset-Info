@@ -57,7 +57,7 @@ names often resolve directly. Struct names do not follow this.
 
 ## Open questions
 
-- Struct name hashes; header field 0x4E.
+- Struct name hashes (in PSO they are 64-bit, [§17](17-other.md#pso)); header field 0x4E.
 - Many fields are still known only by hash; they are exported by hash.
 
 

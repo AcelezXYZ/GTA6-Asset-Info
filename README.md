@@ -46,7 +46,7 @@ differ.
 | Lights | position, colour, type, intensity, range, cones, hour mask | a few fields |
 | Road graph | nodes, links, lanes, speed limits, 34 of 51 node flags, junctions, traffic-light phases | some link flags, street names |
 | Audio | `ADAT` container, chunk tags, Opus framing | a few header fields; whether one container mixes Opus and PCM |
-| PSO data | big-endian section walk; one serialised object graph (30,683 records) | most type and field hashes |
+| PSO data | big-endian section headers, little-endian block table; one serialised object graph (30,683 records) | most type and field hashes |
 | Shaders | shader cache layout | shader names, decoding |
 
 ## Biggest open problems

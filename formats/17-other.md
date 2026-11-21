@@ -4,7 +4,7 @@
 
 | Format | State |
 |---|---|
-| PSO (`PSIN`; sections LSCH/LENM/LSNS/LGID/LRSC/CHKS) | **big-endian** section walk; the length includes the 8-byte section header (corrected 2026-11-20, see [structure/04](../structure/04-pso-objectgraph.md)); hashed field names (64-bit in the vehicle tables); exported raw |
+| PSO (`PSIN`; sections LSCH/LENM/LSNS/LGID/LRSC/CHKS) | **mixed endianness** (corrected 2026-11-20): section headers are big-endian, and a section's length includes its 8-byte header ([structure/04](../structure/04-pso-objectgraph.md)); the block table inside is little-endian (u32 hash, u32 length, `0xAA` padding), and so are the 64-bit `(offset << 20) \| block` references; hashed field names (64-bit in the vehicle tables); exported raw |
 | RBF (`RBF0`) | a new variant with u16 indices and inline names; exported raw |
 | `core_bvh4.rpf` | BVH4 collision with packed 24-bit indices; not decoded |
 | XML, text | plain; exported as is |

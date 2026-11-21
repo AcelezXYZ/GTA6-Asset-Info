@@ -59,11 +59,22 @@ stored per-geometry bounding boxes to about 1.5e-5 relative over 782
 geometries; without them x and y are off by up to 255 steps).
 
 **Axis rotation (confirmed):** the quantiser puts
-the flattest axis of each blob in the 16-bit z slot and rotates the other
-two cyclically, so the decoded (x, y, z) are model axes (a, b, c) with
-(a, b, c) = (0,1,2), (2,0,1) or (1,2,0). Pick the order whose face normals
-best agree with the stored normals (always model space): the right order
-scores 0.9–1.0, the others 0.2–0.5.
+the flattest model axis of each blob in the 16-bit z slot, and the header
+u32 at +0x6C names that axis (corrected 2026-11-20):
+
+| +0x6C | flat axis | slots (x, y, z) hold model axes | order |
+|---|---|---|---|
+| 2 | z | x, y, z | (0, 1, 2) |
+| 1 | y | z, x, y | (2, 0, 1) |
+| 0 | x | z, y, x (a swap, not a rotation) | (2, 1, 0) |
+
+Mode 0 was earlier read as the cyclic (1, 2, 0). Where the stored normals
+could not tell the two apart, wall panels and slabs came out tipped by 90°
+(on one tower drawable, 25 of 51 geometries fell outside the drawable
+bbox). To check a blob, score all six permutations by how well the face
+normals agree with the stored normals (always model space) and keep the
+header's order unless another wins by more than 0.05. On that tower the
+header's order scores 0.91–1.0 on every geometry.
 
 **Normal:** `x = (w & 1023) / 1023 × 2 − 1`, `y = ((w >> 10) & 1023) / 1023
 × 2 − 1`, `z = 1 − |x| − |y|`; if z < 0 fold x and y (standard octahedral

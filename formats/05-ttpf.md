@@ -66,7 +66,7 @@ unknown).
 
 | Descriptor field | Meaning | Confidence |
 |---|---|---|
-| u32 d0 bits 0–13 / 14–27 / 28–31 | width − 1 / height − 1 / mip count − 1 (on cube maps, tile modes 9–12, the field is the mip count itself: cubes marked "2" store one mip per face) | confirmed |
+| u32 d0 bits 0–13 / 14–27 / 28–31 | width − 1 / height − 1 / mip count − 1 (on cube maps, tile modes 9–12, the field is the mip count itself: cubes marked "2" store one mip per face). The mip field **undercounts on about 44.9 K textures** ([below](#real-mip-count)) | confirmed (width, height); mip field unreliable |
 | u32 d1 bits 0–2 | flags | unknown |
 | u32 d1 bits 3–9 | DXGI format | confirmed |
 | u32 d1 bits 10–19 | array size − 1 (0 on 356,418 of 357,115 textures). "Bit 10" alone is the low bit of this field: it is set on every array with an even size (598 textures). Sizes: 6 = cube maps (567); 2 (19), 3 (99), 8 (3), 16 (1), 32 (4), 48 (2), 64 (2) = texture arrays. Layouts in [Arrays and cube maps](#arrays-and-cube-maps) | confirmed (the sizes match the store spacing; every slice decodes to a separate, coherent image) |
@@ -78,6 +78,28 @@ unknown).
 Textures are packed tightly and small ones can sit inside a larger one's
 padding, so **the size comes from the mip chain**, not the distance to the
 next texture.
+
+### Real mip count
+
+The mip field (d0 bits 28–31) is wrong on about 44.9 K of the 352 K store
+textures (confirmed):
+
+| Case | Textures | Field says | Stored |
+|---|---|---|---|
+| tile mode 1 or 2, field 0 (mostly 1024 × 1024 terrain normal maps) | 41.5 K | 1 mip | 3 mips |
+| tile mode 1 UI sprites, field 1 | about 2.7 K | 2 mips | 1 mip |
+| others | a few hundred | | off by 1–2 |
+
+Mips are stored smallest first with mip 0 last, so a wrong count puts mip 0
+at the wrong offset: a scrambled band of the smaller mips across the top of
+1024 × 1024 terrain textures, or noise on small UI sprites.
+
+Rule (single-slice 2D textures): each texture's mip chain runs right up to
+the next texture's virtual offset. Where the size given by the field does
+not reach it and exactly one mip count does, use that count. Checked as
+mip 1 = mip 0 downsampled: median 28–46 dB with the corrected count against
+7–15 dB with the field's, and by eye on terrain and UI textures. Where the
+true count is stored is unknown; it does not map to a single bit field.
 
 ## Layout: AMD Gfx10 (RDNA2) swizzle modes (confirmed)
 
@@ -189,9 +211,7 @@ worst: its layer normals and its RGB layer-blend mask are often flat.
 
 ## Open questions
 
-- 1024 × 1024 tile-mode-1 textures come out with a scrambled top band of
-  about 320 rows, even from plain zlib chunks: the layout rule for that case
-  is not right yet.
+- Where the descriptor stores the real mip count ([Real mip count](#real-mip-count)).
 - 4-byte (RGBA8/BGRA8) and 2-byte (R16) layouts: no equation found, and
   even row-major reads are scrambled, so the data location may also be
   wrong (another header?).

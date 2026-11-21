@@ -13,7 +13,8 @@
 | animation (`anim.rpf`) | clip dictionaries and cutscene metadata; clip metadata decodes (confirmed); skeleton not in the clip dictionaries. See [Animation](#animation) |
 | music catalogue (`audio:/config/music.dat`) | title, artist and playlist records; title hash solved (confirmed). See [Music catalogue](#music-catalogue) |
 | PSIN scene placements (`story000_script.rpf`) | 97,504 64-byte placement records (confirmed). See [PSIN scene placements](#psin-scene-placements) |
-| movies (`movies.rpf`) | Bink 2: 515 movies, 505 `KB2n` and 10 `KB2j`; header, frame index and Bink Audio tracks parse (confirmed); video needs a Bink 2 decoder |
+| movies (`movies.rpf`) | Bink 2: 515 movies, 505 `KB2n` and 10 `KB2j`, stored uncompressed; header, frame index and Bink Audio tracks parse (confirmed); video needs a Bink 2 decoder. See [Video](#video) |
+| UI graphics | named texture dictionaries in `data.rpf` and UI texture stores. See [UI graphics](#ui-graphics) |
 | text (GXT) | `0DRP` type `0x7a` key/text resources; 54,118 keys (confirmed). See [Text (GXT)](#text-gxt) |
 
 ## PSO
@@ -88,6 +89,72 @@ names. The record's root block is a small map of two keys to 64-bit ids.
 Another PSO holds lights and sirens (`Lights`, `Sirens`: cone angles,
 intensity, flash timings), like GTA V's `carcols`. The paint colours are in
 the game-data meta resource instead ([§11](11-vehicle-paint.md#vehicle-tables)).
+
+## Video
+
+`movies.rpf` has a plain payload (only the table of contents is encrypted,
+as everywhere), and its videos are **stored uncompressed**, so a search for
+zlib streams finds nothing in it (confirmed).
+
+Each video is a standard Bink 2 file starting on a 4 KiB boundary; the next
+starts at the first 4 KiB boundary after the previous one ends. That gives
+515 files, the entry count in the archive header, covering 8,831,336,892 of
+the archive's 8,832,481,776 bytes: 505 `KB2n` and 10 `KB2j`, about 236
+minutes, all at 30 fps (confirmed).
+
+Header (the public Bink container layout; all u32):
+
+| Off | Field |
+|---|---|
+| 0 | signature (`KB2n`, `KB2j`) |
+| 4 | file size − 8 |
+| 8 | frame count |
+| 12 | largest frame size |
+| 16 | frame count again |
+| 20, 24 | width, height |
+| 28, 32 | fps numerator, denominator |
+| 36 | video flags (`0x40013` typical) |
+| 40 | audio track count n |
+| 44 | Bink 2 only: one more u32 (`0005e987` seen) |
+| then | n × u32 largest decoded audio size, n × (u16 sample rate, u16 flags; `0x7000` on 48 kHz stereo), n × u32 track id |
+| then | (frame count + 1) × u32 frame offsets: bit 0 = keyframe, the last one is the file size |
+
+Every frame table checks out against the file size.
+
+| Resolution | Files |
+|---|---|
+| 1280 × 720 | 246 |
+| 1920 × 1080 | 130 |
+| 720 × 1280 (portrait) | 67 |
+| 512 × 512 | 23 |
+| 1024 × 1024 | 19 |
+| 2560 × 1440 | 14 |
+| 512 × 256, 2048 × 558 | 2 each |
+
+Audio: 319 files have none, 165 one track, 30 two, 1 four; all 48 kHz
+stereo. The longest video runs 534 s. Original file names are not
+recovered.
+
+## UI graphics
+
+- **Named texture dictionaries in `data.rpf`** (75): 36 loading screens,
+  `hud`, `blip`, `map_scripted_movie`, `generic_movie`, `credits`, `phone`,
+  `controller_test`, `analog_instruments`, `generic_instruments` and 25
+  `vit_*` vehicle gauge sets (dashboards, motorcycle displays). Their 880
+  textures decode with the dictionary rules of [§3](03-texture-dictionaries.md)
+  and [§4](04-xbox-tiling.md); texture names are placeholders (`hud_i8d3`).
+- **UI texture store** `data/ttdb/ui/ttdb_ui.ttpf` ([§5](05-ttpf.md)): 10,013
+  textures, one mip each, named only by 64-bit hash. Mostly sprite atlases:
+  shop and brand logos, tattoo art, hair, beard and wheel icons, character
+  portraits, in-game arcade and website art. Formats: BC1 3,801, BC7 3,383
+  plus 1,828 sRGB, BC3 928, BC4 57, A8 16. 5,751 decode completely, 1,144
+  partly (some 64 KiB chunks are BCPack: the top of the image decodes, the
+  rest is blank) and 3,118 lie only in BCPack chunks.
+- **Fonts and HUD shapes**: `data/ttdb/graphics` holds single-channel font
+  glyph atlases and HUD shapes.
+- **Minimap / pause map**: no tile set found in these stores or
+  dictionaries. The map may be drawn from world data at runtime (not
+  established). Menu layouts (which sprite goes where) are not decoded.
 
 ## Animation
 

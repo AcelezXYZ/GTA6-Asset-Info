@@ -58,12 +58,17 @@ older `gui_cache_v*` folders can be deleted.
   glass classes, emissive.
 - Car paint: primary, secondary, pearl colour and amount, finish (metallic,
   matte, chrome, gloss).
+- Vehicle data (from `sixng vehicles`): a car opens with its first spawn
+  configuration (body colour, rim, tyre); the other configurations are
+  listed, and the paint-colour lists show as swatches with their shares.
+  Rims and tyres are sized as 1.625 × `wheelScale`, front and rear
+  separately (a fitted factor).
 - **LOD** buttons; debug views (albedo, normals, UV checker, single texture
   slot, **BCPack gaps** green/amber/red, vertex colour, lighting only);
   wireframe and normal lines.
 - Skeleton with joint axes and labels; **Rig** sliders spin the wheels and
-  open the doors. Cars get a default shared rim and tyre at their wheel
-  mounts (the real size is not decoded).
+  open the doors. Cars get a shared rim and tyre at their wheel mounts
+  (their configuration's, or a default one without vehicle data).
 - Orbit or fly camera; time of day, exposure, ambient, emissive and a wet
   look.
 - Per-material list with the shader name, class, alpha mode, gap status

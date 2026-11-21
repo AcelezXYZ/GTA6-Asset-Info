@@ -193,8 +193,8 @@ pointer leads to a 32-byte texture reference: ptr, **u64 texture hash**
   the left-front wheel at unit scale (rim radius 0.5, tyre 0.88). The game
   mirrors and scales them per vehicle. Each spawn configuration names its
   rim and tyre, and the model info has `wheelScale` / `wheelScaleRear`
-  ([§11](11-vehicle-paint.md#vehicle-tables)); how that value scales the
-  shared models is not established. The wheel bones' pivots give the mount
+  ([§11](11-vehicle-paint.md#vehicle-tables)); 1.625 × `wheelScale` fits by
+  eye, but the game's rule is not established. The wheel bones' pivots give the mount
   points.
 - **Damage parts**: separate fragments `<car>_dmg_mod_<part>_NNN`.
   **Mod-kit parts**: `<car>_<part>_<kit>`. Both with `_hi`/`_mid`.

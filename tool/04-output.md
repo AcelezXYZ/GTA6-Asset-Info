@@ -36,7 +36,8 @@
   meta/<archive>/index.jsonl, <off>.json      meta schema index / dumps
   pso/data/<offset>.json              one decoded PSO file
   pso/handling.json                   vehicle handling records
-  vehicles/vehicles.json              model info, configurations, palettes, part groups
+  vehicles/vehicles.json              model info, configurations, colour lists, part groups
+  movies/movies.json, *.bk2           Bink videos (list; files with --extract)
   texture_gaps.json                   BCPack census (path set by --file)
   texture_gaps_models.jsonl.gz        one line per affected model
 ```

@@ -182,7 +182,7 @@ sixng pso data --out out
 # Vehicle handling records: <out>/pso/handling.json
 sixng handling data --out out
 # Vehicle model info (wheel scale and type), spawn configurations (colour, rim, tyre, parts)
-# and paint palettes: <out>/vehicles/vehicles.json
+# and weighted paint-colour lists: <out>/vehicles/vehicles.json
 sixng vehicles packs --out out
 ```
 
@@ -197,6 +197,22 @@ sixng ttpf maps --first 20 --mip 1 --out tex
 # Texture arrays and cube maps: every slice / face as <hash>_m<mip>_s<slice>.png
 # (without --all-slices only slice 0 is written)
 sixng ttpf lighting --hash 0123456789abcdef --all-slices --out tex
+# A whole store in parallel, with index.json marking each texture complete, partial
+# (part of the data in BCPack chunks) or bcpack_only (no PNG). Use the full store id
+# when a short name matches several stores. The UI store takes about 10 s.
+sixng ttpf data/ttdb/ui/ttdb_ui.ttpf --all --out out/ui/ttdb_ui
+```
+
+### Video and UI graphics
+
+```powershell
+# Bink videos: carve by header (~7 s) and list them in <out>/movies/movies.json
+sixng movies movies --out out
+# Write the .bk2 files as they are (all of them: 8.8 GB), or only some
+sixng movies movies --out out --extract
+sixng movies movies --out out --extract --only 143205000
+# Named UI dictionaries in data.rpf (loading screens, HUD, gauges; 880 textures, 108 MB)
+sixng extract data --rtype txd -o out
 ```
 
 ### Research helpers

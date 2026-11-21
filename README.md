@@ -37,7 +37,7 @@ differ.
 |------|-----------|---------|
 | RPF9 archives | header layout; payload is plain zlib | the table of contents is encrypted, so there are no file names or paths |
 | Resources | system/graphics pages, pointers, names inside resources | some unnamed resources |
-| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts (84.6 % of 352 K store textures readable) | **BCPack** (8.3 % of textures have no readable mip); 4-/2-byte layouts |
+| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts; BCPack BC1 (98.4 % of 352 K store textures readable at full size) | **BCPack** BC3–BC7 (0.8 % of textures); 4-/2-byte layouts |
 | Models | vertex streams, meshlet index buffers, LODs, skeletons, skinning (incl. u16 bone indices), shaders' texture references; shader names (all) and most parameter names | texture names (64-bit hash), constant buffers |
 | Vehicles | parts, damage and mod-kit parts, wheel mounts; model info, spawn configurations (body colour, rim, tyre), weighted paint-colour lists, handling records | how the wheel scale sizes the shared wheels, secondary colours, liveries, many handling fields |
 | Map data | self-describing meta resources; entities, LOD hierarchy and LOD parents (99 %), archetypes, grass and prop batches, interiors with rooms and entity sets | prefab placement, some hashed fields |
@@ -46,16 +46,16 @@ differ.
 | Lights | position, colour, type, intensity, range, cones, hour mask | a few fields |
 | Road graph | nodes, links, lanes, speed limits, 34 of 51 node flags, junctions, traffic-light phases | some link flags, street names |
 | Video | 515 Bink 2 files, stored uncompressed and carved by header | frame decoding (needs a Bink 2 decoder), original names |
-| UI graphics | 75 named dictionaries (loading screens, HUD, gauges); the UI texture store (10,013 sprite atlases, 57 % complete) | BCPack parts, menu layouts, a minimap tile set (none found) |
+| UI graphics | 75 named dictionaries (loading screens, HUD, gauges); the UI texture store (10,013 sprite atlases, 90 % complete) | BCPack parts, menu layouts, a minimap tile set (none found) |
 | Audio | `ADAT` container, chunk tags, Opus framing, codec ids (PCM16, float32 PCM, XMA2, Opus) | a few header fields |
 | PSO data | big-endian section headers, little-endian block table, the `LSCH` schema (joaat field names); 2,225 of 2,281 files in `data.rpf` decode; one serialised object graph (30,683 records) | 56 files in the older layout, enums, most struct names |
 | Shaders | shader cache layout, shader names | decoding |
 
 ## Biggest open problems
 
-- **BCPack**, the Xbox Series hardware texture codec. The rANS coder and the
-  stream layout are partly mapped; there is no decoder.
-  [Details and how to resume](formats/06-bcpack.md#64-how-to-resume).
+- **BCPack**, the Xbox Series hardware texture codec. BC1 decodes; the
+  BC3, BC4, BC5, BC6H and BC7 codecs do not.
+  [Status and how to resume](formats/06-bcpack.md#60-status).
 - **Collision surface names**: the surface id hash is unknown. (Shader and
   parameter names are solved: joaat of the lower-case name.)
 - **The RPF9 TOC** is encrypted.

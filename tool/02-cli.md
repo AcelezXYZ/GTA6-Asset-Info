@@ -198,7 +198,7 @@ sixng ttpf maps --first 20 --mip 1 --out tex
 # (without --all-slices only slice 0 is written)
 sixng ttpf lighting --hash 0123456789abcdef --all-slices --out tex
 # A whole store in parallel, with index.json marking each texture complete, partial
-# (part of the data in BCPack chunks) or bcpack_only (no PNG). Use the full store id
+# (part of the data in BCPack chunks other than BC1) or bcpack_only (no PNG). Use the full store id
 # when a short name matches several stores. The UI store takes about 10 s.
 sixng ttpf data/ttdb/ui/ttdb_ui.ttpf --all --out out/ui/ttdb_ui
 ```

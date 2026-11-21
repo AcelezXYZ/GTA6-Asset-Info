@@ -62,7 +62,7 @@ Music/multi-channel streams use 512 KiB blocks with 2,048-byte sub-blocks, selec
 | 0x0E | u16 loop end |
 | 0x10 | u16 play end |
 | 0x12 | u8 play begin |
-| 0x13 | u8 (see note below; not the codec in the 32-byte form) |
+| 0x13 | u8 codec (0x00 = Opus): earlier reading, **superseded** for the 32-byte form by the decoding evidence below |
 | 0x14 | u32 peak (24-byte form) |
 | 0x1C | 32-byte form: u8 codec id, u8 channel count, u16 0 (see below) |
 
@@ -74,11 +74,13 @@ the u8 at `0x1C` and the channel count the u8 at `0x1D` (1 mono, 2 stereo).
 | 0 | PCM signed 16-bit LE | data bytes / samples = 2.000000 on every stream |
 | 1 | ADPCM | not present in this build |
 | 2 | PCM float32 LE | data bytes / samples = 4.000000 on every stream |
-| 5 | XMA2 | decodes with FFmpeg's `xma2` decoder inside an `XMA2WAVEFORMATEX`; 32,000 Hz mono |
+| 5 | XMA2 | every sampled stream decodes as XMA2; 32,000 Hz mono |
 | 11 | Opus | packets start `0xF8` (mono) or `0xFC` (stereo), 20 ms each |
 
 Over 1,606,240 streams: Opus is about 99.3 % of payload bytes, XMA2 0.45 %,
-float32 PCM 0.26 %, PCM16 0.001 %. One container can hold several codecs.
+float32 PCM 0.26 %, PCM16 0.001 %. One container can hold streams of more than
+one codec: per-codec container counts sum to 7,162 over 7,159 containers
+(confirmed).
 
 ## Music stream-format chunk (`0x48`)
 
@@ -114,5 +116,4 @@ codec byte rather than assume Opus.
 
 ## Open questions
 
-- Whether `0x55` payloads can mix Opus and PCM inside one container.
 - The meaning of `headroom` and of the `0x00400000` word.

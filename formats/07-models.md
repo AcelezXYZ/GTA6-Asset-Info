@@ -187,7 +187,7 @@ pointer leads to a 32-byte texture reference: ptr, **u64 texture hash**
 
 ## Open questions
 
-- Position bits 0–15; normal top 12 bits; slots 12, 13, 17.
+- Normal top 12 bits; slots 12, 13, 17.
 - Occluder and water-vegetation LOD buffers (another format).
 - Shader constant-buffer layout (would give cable thickness, paint and
   material constants).

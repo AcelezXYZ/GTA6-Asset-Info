@@ -219,12 +219,13 @@ or the end of a chain.
 | `+0x08` | ptr | Points 0x10 bytes before the clip record base used below |
 | `+0x10` | ptr | Next entry in the same bucket |
 
-Walking all bucket chains resolved all 1,784 entries in 194 dictionaries,
-including four without a readable clip name. The bucket selection formula
-is unknown. For named clips, the stem hash is the lowercase joaat of the
-last path component without `.clip`. The set hash is the lowercase joaat
-of the directory without `pack:/` (130 records), or the dictionary name
-hash for flat `pack:/<stem>.clip` paths (1,650 records).
+A full-archive walk of the bucket chains found 52,912 dictionaries and
+294,794 entries. The bucket selection formula is unknown. The stem hash
+is the lowercase joaat of the last path component without `.clip`. The
+set hash is the lowercase joaat of the directory without `pack:/`
+(12,626 records), or the dictionary name hash for flat
+`pack:/<stem>.clip` paths (282,168 records). Both rules held for every
+entry.
 
 ### Scene clip references
 
@@ -278,8 +279,13 @@ a name or stem match alone selects the wrong copy.
 
 ### Clip windows and source tracks
 
-For the sampled type-2 clips, `+0x18` points to the
-name, `+0x68` is the `f32` clip duration, and `+0x58` points to an array
+For the sampled type-2 clips, `+0x18` is a 16-byte name field. If bit 7
+of byte `+0x27` is set, the NUL-terminated name is stored inline at
+`+0x18`, with length `byte & 0x7f`. Otherwise `+0x18` points to the name;
+the `u16` at `+0x20` is its length and the `u16` at `+0x22` is
+`length + 1`. Across the archive, all 909 names of 12-14 characters were
+inline, and all 293,885 names of 15 or more characters used the pointer
+form. `+0x68` is the `f32` clip duration, and `+0x58` points to an array
 of 0x18-byte wrappers counted by the `u16` at `+0x60`. Each wrapper has a
 window array pointer at `+0x00`, `u16` window count at `+0x08` and `f32`
 duration at `+0x10`. Window stride is 0x38:
@@ -320,6 +326,34 @@ Verified on the `ambient_malebody` and `ambient_femalebody` fragments at
 Property `0x98e1750c`, kind `0`, is an XYZW local rotation;
 `0xf791a95f`, kind `2`, is an XYZ local translation. Other track
 properties can target controls rather than indexed bones.
+
+The row kind gives the value shape of the track's channel group, not its
+channel type:
+
+| Row kind | Channel group |
+|---|---|
+| 0 | Quaternion: one type-0 static quaternion; three scalar components plus one type-7 marker; or scalar components 0-3 plus one type-8 marker |
+| 2 | Vector3: one type-1 static vector, or scalar components 0-2 |
+| 3 | Two scalar components, 0-1 |
+| 4 | One scalar component, 0 |
+
+All 94,092 rows decoded from 981 sequences matched this table. Only
+these four kinds occurred in 12,620,439 rows from 190,318 sources. The
+kind belongs to the row, not the property: `0x2deefadd` occurs with
+kinds 4, 2 and 0.
+
+Four kind-4 properties target ped bones. In the full table census,
+`0x135d54f6` targets exactly Pelvis, Spine3, Head, both hands and both
+feet in all 12,120 sources that use it; `0x56352445` targets exactly both
+feet in 15,321 sources; `0xb3c29ff4` and `0xabd2feb8` target subsets of
+the same seven bones. In 4,831 varying curves decoded from a
+representative sample, every segment between resets started at 0 and
+ended at 1 within 1e-6, and every reset fell within two source frames of
+a clip-window boundary. Their runtime meaning is unknown. `0xb3c29ff4`
+and `0x56352445` can store byte-identical curves for the same foot
+(`anim.rpf@0xf7f1f010`, sequence `+0x20000`) or different ones: in step-turn
+`anim.rpf@0x67b60010`, source `+0xdda0`, sequence `+0x55b0`, the left
+foot reads 0 and 0.602151 at frame 334.
 
 Sequence `i` starts at source frame `i * frame_stride` (zero-based).
 Each non-final sequence stores `frame_stride + 1` samples: its last

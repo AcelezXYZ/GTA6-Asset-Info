@@ -18,7 +18,7 @@ format across all titles.
 | `0x04` BC1 | Confirmed on sampled chunks with two implementations. | Working exports. Some endpoint presets and selector codebook entries still differ between implementations. |
 | `0x0C` BC3 | All 35 BC3 chunks decode with the expected symbol counts, the 65,536-block ones as one stream (confirmed). Two implementations also agree on every symbol on 5 samples. | **Decodes** ([§6.2](#62-bc3-blocks-codec-0x0c)): 27–47 dB against neighbouring mips, mostly 31–39. The preset table and selector codebook are fitted (inferred); not byte-exact. |
 | `0x10` BC4, `0x14` BC5 | Two implementations agree on every symbol and consume the full input on 2 BC4 and 5 BC5 samples. | **Decodes** ([§6.4](#64-bc4-and-bc5-blocks-codecs-0x10-0x14)): BC4 35–50 dB, BC5 median 43 dB against neighbouring mips. Index-pair tables and presets are fitted (inferred); not byte-exact. |
-| `0x18` BC6H | All 268 BC6H chunks in the local scan consumed their exact input and emitted the expected symbol counts per lane. All symbols also matched a second implementation on 5 spot checks. | **Decodes** ([§6.5](#65-bc6h-blocks-codec-0x18)): 86 % of blocks within 0.15 stops of neighbouring mips, 27 dB tonemapped (18–49 dB per texture). History tables are fitted (inferred); not byte-exact. |
+| `0x18` BC6H | All 268 BC6H chunks in the local scan consumed their exact input and emitted the expected symbol counts per lane. All symbols also matched a second implementation on 5 spot checks. | **Decodes** ([§6.5](#65-bc6h-blocks-codec-0x18)): 88 % of blocks within 0.15 stops of plain neighbouring mips, 28 dB tonemapped (median 35 dB per texture); on textures stored only as BCPack, 62 % of blocks match the decoded neighbouring mips. History tables are fitted (inferred); not byte-exact. |
 | `0x1C` BC7 | All 5,167 BC7 chunks of the data and content-pack stores decode (5,120 in the data stores). All symbols also matched a second implementation on 24 spot checks. | **Decodes** ([§6.3](#63-bc7-blocks-codec-0x1c)): on 1,029 chunks checked against the next mip, 65.5 % of blocks within 3 levels, median 35.4 dB, no invalid blocks. The 256-slot history table is fitted (inferred); not byte-exact. |
 
 For BC1, the block count is the chunk's virtual size divided by 8.
@@ -175,7 +175,9 @@ Distances as BC7 ([§6.3](#63-bc7-blocks-codec-0x1c)).
   mode; for transformed one-region modes y = `(w << (16 − delta_bits)) XOR
   0x8000`. A later two-region block therefore predicts y from the low bits
   of w. This removed the speckles after mode changes (blocks within 0.15
-  stops: 81 % → 86 %; 23 → 27 dB).
+  stops: 81 % → 86 %; 23 → 27 dB). Refitting the preset endpoint slots
+  (below) then gave 88 % and 28 dB (median per texture 29 → 35 dB;
+  BCPack-only textures 58 % → 62 %).
 - **Indices:** the BC7 scheme with a 4-bit MSB-aligned state, 3-bit reads in
   two-region modes; distance 0 predicts 8. Anchor top bits are dropped
   (truncating fits better than keeping them).
@@ -201,7 +203,9 @@ mip 3 under a mip 1 with a logo), so they cannot be scored.
 - **Fitted tables (BC3, BC4, BC5, BC6H, BC7):** the history slots, the BC3
   selector codebook and the index-pair tables are fitted against
   neighbouring mips (per-slot coordinate descent over the blocks each slot
-  roots). No plain copy of any affected
+  roots). BC6H preset endpoint slots are scored by the full pixel error with
+  the decoded indices; an index-free best-palette score was too lenient on
+  the second region's first endpoint. No plain copy of any affected
   mip 0 exists in the install, so nothing confirms them byte for byte.
 
 **BC1/3/4/5:** Confirm the disputed or fitted endpoint presets and selector

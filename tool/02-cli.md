@@ -245,6 +245,20 @@ by codec ([structure/03](../structure/03-audio-awc.md)):
 Stream names are 29-bit hashes and are not recovered; streams are listed by
 bank offset and stream id.
 
+### Text
+
+```powershell
+# Every localised text table in data.rpf to JSON (~21 s)
+sixng text data -o work/out
+# One label's string in every table (every language), without markup
+sixng text pack__shared_minigame000__shared_minigame000 --label AG_SUR_GEAR_FIRST1_01 --plain
+```
+
+Each table becomes `<offset>.json` (label hash → string), listed in
+`index.jsonl`. `--plain` drops the inline markup (subtitle timing,
+colours, line breaks, button icons). Which table is which language is not
+stored. Layout: [§17](../formats/17-other.md#text-gxt). Added 2026-11-22.
+
 ### Hair, cloth and head deltas
 
 ```powershell

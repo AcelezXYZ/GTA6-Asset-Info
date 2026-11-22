@@ -22,7 +22,7 @@ no errors. With BC1 decoded, mip 0 is readable for 98.4 % of store
 textures (86.8 % before; [coverage](05-ttpf.md#coverage-all-57-stores-352461-textures)).
 
 Exact reconstruction still needs a byte-level check. On sampled BC1
-chunks, two software decoders reproduced the same lane symbols and
+chunks, two independent decodes reproduced the same lane symbols and
 output lengths, with differing endpoint bytes on some chunks. An
 independent reference should compare the raw tiled BC1 bytes before
 detiling or converting them to pixels.

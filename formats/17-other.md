@@ -201,24 +201,304 @@ seven windows).
 
 Clip names, durations and sequence channels decode (confirmed). Sampled rotation
 tracks validate as unit quaternions: 3.95 M values, worst |q| − 1 about 1.2e-7
-(confirmed). The skeleton is not stored in the clip dictionaries.
+(confirmed). A unit norm alone does not validate the decoded pose. The
+skeleton is not stored in the clip dictionaries.
+
+### Dictionary clip index
+
+In the sampled Xbox Series 1.0.2.1 dictionaries, body `+0x38` points to
+the dictionary name and `+0x68` stores its lowercase joaat. Body `+0x48`
+points to `u64` bucket heads, with `u32` bucket count at `+0x50` and
+`u32` total entry count at `+0x58`. A zero pointer marks an empty bucket
+or the end of a chain.
+
+| Entry offset | Type | Meaning |
+|---|---|---|
+| `+0x00` | `u32` | Clip stem hash, matching clip record `+0x48` |
+| `+0x04` | `u32` | Clip set hash, matching clip record `+0x4c` |
+| `+0x08` | ptr | Points 0x10 bytes before the clip record base used below |
+| `+0x10` | ptr | Next entry in the same bucket |
+
+A full-archive walk of the bucket chains found 52,912 dictionaries and
+294,794 entries. The bucket selection formula is unknown. The stem hash
+is the lowercase joaat of the last path component without `.clip`. The
+set hash is the lowercase joaat of the directory without `pack:/`
+(12,626 records), or the dictionary name hash for flat
+`pack:/<stem>.clip` paths (282,168 records). Both rules held for every
+entry.
+
+### Scene clip references
+
+In the `0DRP` v122 class registry, each entry's `u32` at `+0x18` is the
+**instance stride**, not descriptor byte length. Read the `u16`
+descriptor count at `+0x1e`, then that many 16-byte descriptors from the
+`+0x10` pointer. A packed object reference stores a one-based block index
+in the low 20 bits and a byte offset within that block above them.
+
+All 22,823 `0DRP` schemas in `anim.rpf` contain inline clip-reference
+class `0x24749343`, whose instance stride is `0x18`:
+
+| Offset | Type | Meaning |
+|---|---|---|
+| `+0x08` | `u32` | Dictionary/set hash; descriptor field hash `0x25de16df`, type `0x4a` |
+| `+0x0c` | `u32` | Clip stem hash; descriptor field hash `0x24fc8f24`, type `0x4a` |
+| `+0x10` | `u32` | Flag; observed 695,621 times as 1 and 10,644 times as 0 |
+| `+0x14` | `u32` | Observed zero |
+
+To find the reference, do not assume a fixed offset in the event object:
+search parent descriptors for a type-`0x05` field whose aux class tag is
+`0x24749343`. Eleven parent class tags occur in the archive. Most use the
+`clip` field (`jhash("clip")` = `0xe71bd32a`) at `+0x38`; four also have
+a second reference (`0x7c0a2099`) at `+0x68`. Less common layouts place
+it at `+0x08` or `+0x120`, or one inline level deeper. In the common
+shared-header event classes, field `rate` (`0x7e68c088`) is an `f32` at
+`+0x5c`.
+
+A full-archive pass walked 1,628,388 reference instances, of which
+706,265 had both hashes nonzero. The same pass carved 52,912 dictionaries
+and 294,794 bucket nodes. Requiring a bucket node with
+`(stem,set) == (clip_hash,dict_hash)`, plus the mirrored keys in the clip
+record, fully validated 148,314 reference rows into 14,575 unique
+dictionary/clip pairs, covering 6,856 dictionaries and 6,201 stems.
+
+The unresolved rows are not simply corrupt: 482,552 name a carved
+dictionary but not the stored clip stem, while 75,399 name a dictionary
+hash absent from `anim.rpf`; 554,783 stems occur only under another set.
+The dominant misses reference gesture variant sets whose stems are stored
+under sibling/base/common sets, consistent with a fallback hierarchy.
+Treat an absent direct `(dict,clip)` match as unresolved rather than
+proof that no clip exists.
+
+For example, the scene at `anim.rpf@0x94f010` contains pair
+`0x65d46c10`/`0x9302c678`, selecting dictionary `anim.rpf@0x272d5010` and
+clip `+0xdba60` (`pack:/jason_buddy_kiss_jason.clip`). That clip's source
+window uses source `+0xdc830`, sequence `+0xa7390`, from 4.5 to 7.9
+source seconds at rate 1. Dictionary `0x26eeb010` contains the same clip
+name and stem hash under a different dictionary hash (`0x7cb407d0`), so
+a name or stem match alone selects the wrong copy.
+
+### Clip windows and source tracks
+
+For the sampled type-2 clips, `+0x18` is a 16-byte name field. If bit 7
+of byte `+0x27` is set, the NUL-terminated name is stored inline at
+`+0x18`, with length `byte & 0x7f`. Otherwise `+0x18` points to the name;
+the `u16` at `+0x20` is its length and the `u16` at `+0x22` is
+`length + 1`. Across the archive, all 909 names of 12-14 characters were
+inline, and all 293,885 names of 15 or more characters used the pointer
+form. `+0x68` is the `f32` clip duration, and `+0x58` points to an array
+of 0x18-byte wrappers counted by the `u16` at `+0x60`. Each wrapper has a
+window array pointer at `+0x00`, `u16` window count at `+0x08` and `f32`
+duration at `+0x10`. Window stride is 0x38:
+
+| Offset | Type | Meaning |
+|---|---|---|
+| `+0x00` | ptr | Source animation record |
+| `+0x08` | `u32` | Lowercase joaat of the source name without `pack:/` or `.anim` |
+| `+0x28` | `f32` | Start time in the source, seconds |
+| `+0x2c` | `f32` | End time in the source, seconds |
+| `+0x30` | `f32` | Source seconds per clip second |
+
+Sample each window at `start + clip_time * rate`. Different windows can
+contribute tracks over the same clip time; do not concatenate them. In
+836 clips across seven dictionaries, all 2,502 source pointers and hashes
+resolved, and `(end - start) / rate` agreed with clip duration within
+0.000013 s. An embedded `pack:/...clip` string alone is not proof of a clip
+record.
+
+For the sampled source record layout with a 0x20-byte prefix, offsets
+from the **record start** are:
+
+| Offset | Type | Meaning |
+|---|---|---|
+| `+0x10` | `u32` | Number of clip windows in the dictionary that reference the source, plus one |
+| `+0x24` | `u16` | Source frame count |
+| `+0x26` | `u16` | Frame stride between sequence starts in multi-sequence sources |
+| `+0x28` | `f32` | Source duration, seconds |
+| `+0x30` | ptr | Source name |
+| `+0x50` / `+0x58` | ptr / `u16` | Sequence pointer array / count |
+| `+0x60` / `+0x68` | ptr / `u16` | Track row array / count |
+
+The `+0x10` relation held for all 2,411 sources in 618 sampled
+dictionaries; 26 of those sources were used by more than 63 windows.
+
+The track stride is **12 bytes**: `{u32 target_hash, u32 property_hash,
+u32 kind}` (233 sampled tables). For skeletal tracks, the target is the
+full lowercase joaat of the bone name, not the 16-bit tag. It matches the
+`u32` at `+0x1c` in the [ped bone record](07-models.md#75-skeleton-fragments-confirmed).
+Verified on the `ambient_malebody` and `ambient_femalebody` fragments at
+`packs.rpf@0x454db010` and `packs.rpf@0x45404010` respectively.
+Property `0x98e1750c`, kind `0`, is an XYZW local rotation;
+`0xf791a95f`, kind `2`, is an XYZ local translation. Other track
+properties can target controls rather than indexed bones.
+
+The row kind gives the value shape of the track's channel group, not its
+channel type:
+
+| Row kind | Channel group |
+|---|---|
+| 0 | Quaternion: one type-0 static quaternion; three scalar components plus one type-7 marker; or scalar components 0-3 plus one type-8 marker |
+| 2 | Vector3: one type-1 static vector, or scalar components 0-2 |
+| 3 | Two scalar components, 0-1 |
+| 4 | One scalar component, 0 |
+
+All 94,092 rows decoded from 981 sequences matched this table. Only
+these four kinds occurred in 12,620,439 rows from 190,318 sources. The
+kind belongs to the row, not the property: `0x2deefadd` occurs with
+kinds 4, 2 and 0.
+
+Four kind-4 properties target ped bones. In the full table census,
+`0x135d54f6` targets exactly Pelvis, Spine3, Head, both hands and both
+feet in all 12,120 sources that use it; `0x56352445` targets exactly both
+feet in 15,321 sources; `0xb3c29ff4` and `0xabd2feb8` target subsets of
+the same seven bones. In 4,831 varying curves decoded from a
+representative sample, every segment between resets started at 0 and
+ended at 1 within 1e-6, and every reset fell within two source frames of
+a clip-window boundary. Their runtime meaning is unknown. `0xb3c29ff4`
+and `0x56352445` can store byte-identical curves for the same foot
+(`anim.rpf@0xf7f1f010`, sequence `+0x20000`) or different ones: in step-turn
+`anim.rpf@0x67b60010`, source `+0xdda0`, sequence `+0x55b0`, the left
+foot reads 0 and 0.602151 at frame 334.
+
+Sequence `i` starts at source frame `i * frame_stride` (zero-based).
+Each non-final sequence stores `frame_stride + 1` samples: its last
+sample and the next sequence's first sample share a source time. All
+14,133 multi-sequence sources with validated headers satisfied
+`sum(sequence_frame_counts) - (sequence_count - 1) = source_frame_count`.
+All 228 non-final sequence headers checked against the stride field
+matched. Across 44 decoded joins, scalar and vector samples agreed
+closely; the type-8 handling below makes all sampled shared-frame
+quaternion tracks agree.
+
+### Sequence channels
 
 The 0x20-byte sequence header gives the payload size at `+0x04`, the
 payload-relative frame-data offset at `+0x0C`, and the header-relative
 root-motion offset at `+0x10` (all u32). The frame count and bytes per
-frame are u16 values at `+0x16` and `+0x18`.
+frame are u16 values at `+0x16` and `+0x18`. In all 307 cached
+sequences, `+0x14` was 2 and `+0x1E` was 0x0b; their meanings are open.
+The `u16` at `+0x1A` is the sum of `(table_words + 5)` over the type-5
+channels, and `+0x1C` is the sum of the type-4 frame bit widths. The
+frame stride is the total frame-coded bits (32 for each type-3 channel
+plus the stored widths for types 4 and 5), rounded up to a 32-bit word;
+this layout check passed on all 307 cached sequences.
 
 Channel parameters precede the frame data. After
 `frame_count * bytes_per_frame` bytes of frame data, read **eleven**
-u16 channel-list counts and their u16 lists. Pad each list to a multiple
-of four u16 words. The lists end at the root-motion region. Each
-root-motion reference consumes six bytes.
-The high and low nibbles of byte `+0x1F` count position and rotation
-references. Check that the lists close at
-`0x20 + payload_size - 6 * (position_count + rotation_count)`.
-This size check passed on all tested sequences. Channel type
-9 had zero entries in the sample. Type 10's list is readable and its
-parameter encoding remains open.
+u16 channel-list counts and their u16 lists. A list word is
+`track_index << 2 | component_index`; the track index addresses the
+12-byte rows. In the sampled type-7 cached quaternion records, the low
+two bits identify the omitted XYZW component, reconstructed as the
+positive square root of `1 - sum(other_components^2)`. Type 8 is
+different: the scalar channels store all four XYZW components, and the
+type-8 marker consumes no parameter or frame bits. Read all four stored
+values by slot index and normalize them for playback. Across 1,885
+type-8 tracks (1,286,011 samples), the largest pre-normalization norm
+error was 0.00137. Keeping all four values brought all 855 shared-frame
+comparisons below a sign-invariant quaternion distance of 0.01, while
+discarding one component produced 505 mismatches above 0.5. Pad each list
+to a multiple of four u16 words. Header `+0x10` points to the first
+six-byte root-motion reference: `+0x10 - 0x20` equals the end of the
+channel lists in 563 footer sequences and the payload length in 448
+sequences without footers. The high and low nibbles of byte `+0x1F`
+count position and rotation references.
+
+Each reference is `{u8 channel_kind, u8 component, u16
+parameter_word_offset, u16 frame_bit_offset}`. The parameter offset is in
+4-byte words from the start of the sequence payload; the frame offset is
+in bits from the start of a packed frame. A group of references selects
+the complete channel list of one target-0 trajectory track. In 1,126
+groups, the position rows were `{target=0, property=0x7e58c0a0, kind=2}`
+and the rotation rows `{target=0, property=0x103ca38a, kind=0}`; the
+latter was always track-table index 0. Intersecting the candidate tracks
+across each group resolved a singleton 1,126/1,126 times, and the
+reference multiset matched the track's channel multiset.
+
+Of 3,096 references, 329 were individually ambiguous. All were kind-7
+or kind-8 markers at the end of a rotation group: markers consume no
+parameter or frame bits, so same-kind markers can share offsets. The
+group's other references identify the track.
+
+**Type 5: indirect quantized float.** The parameter record is
+`{i32 index_bits, i32 value_bits, i32 table_words, f32 quantum, f32 bias}`
+followed by `table_words` `u32` words, so it occupies
+`20 + 4 * table_words` bytes. Each packed frame stores an
+`index_bits`-wide LSB-first index. The index selects an LSB-first
+`value_bits`-wide entry from the bit-packed table, and the value is
+`entry * quantum + bias`. In 668 type-5 channels from 218 sequences, the
+header `+0x1A` total matched every sequence, every channel used a dense
+index range starting at 0, and all bits after the table entries were
+zero. Index `(1 << index_bits) - 1` never occurred, including in 229
+channels whose table could hold it. All 118 shared-frame comparisons of
+tracks containing type-5 channels agreed within 0.001.
+
+**Type 10: incremental float.** The parameter record begins with a
+`u32` size in 4-byte words (including the header), four descriptor bytes,
+then `f32 quantum` and `f32 bias`. Descriptor bytes 0 and 1 give the bit
+widths of the offsets and initial values respectively. Byte 2 is the
+rounded residual payload length per lane in 32-bit words
+(`lane_bits / 32`); byte 3 was zero in all 35,964 records across the
+299 cached sequences used for that check.
+
+Read the payload LSB-first. Divide the sequence into 64-frame chunks.
+Read one lane bit offset per chunk, then one initial quantized value per
+chunk. Read a unary width (zero bits terminated by one) for each group of
+up to eight residual frames, excluding each chunk's first frame. Align
+to 32 bits. The residual payload is eight lanes interleaved by 32-bit
+word: lane `l`'s logical word `w` is payload word `8*w + l` after
+alignment. Each residual group reads the same width at the same bit
+offset from lanes 0 through `min(8, remaining_frames) - 1`, in order.
+
+```text
+for each chunk:
+    pos = lane_offset[chunk]
+    value = initial_value[chunk]
+    velocity = 0
+    emit(value * quantum + bias)
+    for width, count in the chunk's residual groups:
+        for lane in 0 .. count-1:
+            u = read_unsigned_bits(lane, pos, width)
+            velocity += (u >> 1) XOR -(u & 1)
+            value += velocity
+            emit(value * quantum + bias)
+        pos += width
+```
+
+Each chunk's widths sum to the distance to the next stored lane offset.
+The last lane end, rounded to 32 bits and multiplied by eight, accounts
+for the rest of the record. Both checks passed for **36,158 records in
+302 sequences**. Type 10 contributes no bits to the per-frame stream.
+This layout produces continuous rotations in tested clips.
+
+Large steps inside a source are not necessarily decode errors. Of 303
+consecutive-frame quaternion steps above 0.5 on tracks containing type-5
+channels, 297 were on the target-0 trajectory rotation track. In each,
+the heading jumped to identity exactly on a frame where a catalogued
+clip window starts or ends. Sample the clip window rather than the whole
+source. The other six steps were on skeletal rotation tracks, and their
+cause is open, as are other within-sequence discontinuities.
+
+Types 6 and 9 remain undecoded, but neither occurred in the 212,302
+unique sequences reached from 294,810 validated clips in 52,923
+dictionaries. Type 3 occurred in only 30 of those sequences.
+
+### Pose root and trajectory
+
+In `pack:/1f_twerk_ped_01.clip` (`anim.rpf@0xf7f1f010`, clip `+0x194f0`,
+sequence `+0x20000`), `SKEL_ROOT` has a rotation and translation
+separate from the trajectory in the sequence footer. Applying the two
+skeletal tracks as **absolute local** transforms on the matching female
+rig, rather than re-anchoring the first sample to the root bind
+orientation, reproduces the planted portion of the motion without foot
+IK. Over frames 39-100, the left/right toe-height standard deviations
+dropped from 0.190/0.207 m with the re-anchored root to 0.005/0.001 m
+with the absolute root, keeping all non-root keys unchanged.
+
+In this example, the three position references resolve to track 36
+(`0x7e58c0a0`); all four rotation references resolve to track 0
+(`0x103ca38a`). Track 153 (`0xbd8d191d`) duplicates the heading curve but
+is not referenced by the footer. The trajectory reaches 0.728 m of
+planar displacement and about 141 degrees of heading change. How the
+runtime combines it with the pose is not yet verified.
 
 ## Ped body shape
 

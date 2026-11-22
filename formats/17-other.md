@@ -204,9 +204,31 @@ tracks validate as unit quaternions: 3.95 M values, worst |q| − 1 about 1.2e-7
 (confirmed). A unit norm alone does not validate the decoded pose. The
 skeleton is not stored in the clip dictionaries.
 
+### Dictionary clip index
+
+In the sampled Xbox Series 1.0.2.1 dictionaries, body `+0x38` points to
+the dictionary name and `+0x68` stores its lowercase joaat. Body `+0x48`
+points to `u64` bucket heads, with `u32` bucket count at `+0x50` and
+`u32` total entry count at `+0x58`. A zero pointer marks an empty bucket
+or the end of a chain.
+
+| Entry offset | Type | Meaning |
+|---|---|---|
+| `+0x00` | `u32` | Clip stem hash, matching clip record `+0x48` |
+| `+0x04` | `u32` | Clip set hash, matching clip record `+0x4c` |
+| `+0x08` | ptr | Points 0x10 bytes before the clip record base used below |
+| `+0x10` | ptr | Next entry in the same bucket |
+
+Walking all bucket chains resolved all 1,784 entries in 194 dictionaries,
+including four without a readable clip name. The bucket selection formula
+is unknown. For named clips, the stem hash is the lowercase joaat of the
+last path component without `.clip`. The set hash is the lowercase joaat
+of the directory without `pack:/` (130 records), or the dictionary name
+hash for flat `pack:/<stem>.clip` paths (1,650 records).
+
 ### Clip windows and source tracks
 
-For the sampled Xbox Series 1.0.2.1 type-2 clips, `+0x18` points to the
+For the sampled type-2 clips, `+0x18` points to the
 name, `+0x68` is the `f32` clip duration, and `+0x58` points to an array
 of 0x18-byte wrappers counted by the `u16` at `+0x60`. Each wrapper has a
 window array pointer at `+0x00`, `u16` window count at `+0x08` and `f32`
@@ -233,6 +255,7 @@ from the **record start** are:
 | Offset | Type | Meaning |
 |---|---|---|
 | `+0x24` | `u16` | Source frame count |
+| `+0x26` | `u16` | Frame stride between sequence starts in multi-sequence sources |
 | `+0x28` | `f32` | Source duration, seconds |
 | `+0x30` | ptr | Source name |
 | `+0x50` / `+0x58` | ptr / `u16` | Sequence pointer array / count |
@@ -247,6 +270,16 @@ Verified on the `ambient_malebody` and `ambient_femalebody` fragments at
 Property `0x98e1750c`, kind `0`, is an XYZW local rotation;
 `0xf791a95f`, kind `2`, is an XYZ local translation. Other track
 properties can target controls rather than indexed bones.
+
+Sequence `i` starts at source frame `i * frame_stride` (zero-based).
+Each non-final sequence stores `frame_stride + 1` samples: its last
+sample and the next sequence's first sample share a source time. All
+14,133 multi-sequence sources with validated headers satisfied
+`sum(sequence_frame_counts) - (sequence_count - 1) = source_frame_count`.
+All 228 non-final sequence headers checked against the stride field
+matched. Across 44 decoded joins, scalar and vector samples agreed
+closely, but some quaternion tracks still disagreed with the current
+decoder.
 
 ### Sequence channels
 
@@ -268,6 +301,15 @@ The high and low nibbles of byte `+0x1F` count position and rotation
 references. Check that the lists close at
 `0x20 + payload_size - 6 * (position_count + rotation_count)`.
 This size check passed on all tested sequences.
+
+Each reference is `{u8 channel_kind, u8 component, u16
+parameter_word_offset, u16 frame_bit_offset}`. The parameter offset is in
+4-byte words from the start of the sequence payload; the frame offset is
+in bits from the start of a packed frame. All 2,666 references across
+498 nonempty footers matched these fields in the serialized channel
+lists. Of those, 235 matched multiple type-7 or type-8 markers, which
+consume no parameter or frame bits and can share the same offsets and
+component.
 
 **Type 10: incremental float.** The parameter record begins with a
 `u32` size in 4-byte words (including the header), four descriptor bytes,
@@ -319,17 +361,11 @@ IK. Over frames 39-100, the left/right toe-height standard deviations
 dropped from 0.190/0.207 m with the re-anchored root to 0.005/0.001 m
 with the absolute root, keeping all non-root keys unchanged.
 
-The six-byte footer references in this sequence resolve as
-`{u8 channel_kind, u8 component, u16 parameter_word_offset,
-u16 frame_bit_offset}`. Parameter word offsets are in 4-byte units from
-the start of the sequence payload; frame bit offsets are relative to
-the start of each packed frame for frame-coded channels. The three
-position references resolve to track 36; the four rotation references
-resolve across tracks 0 and 153, which encode the same heading curve in
-this sample. The separate trajectory reaches 0.728 m of planar
+In this example, the three position references resolve to track 36; the
+four rotation references resolve across tracks 0 and 153, which encode
+the same heading curve. The trajectory reaches 0.728 m of planar
 displacement and about 141 degrees of heading change. How the runtime
-combines it with the pose, and whether the reference field interpretation
-generalizes to all sequences, are not yet verified.
+combines it with the pose is not yet verified.
 
 ## Ped body shape
 

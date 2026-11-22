@@ -54,11 +54,11 @@ looks like a scrambled swizzle.
 |---|---|---|---|
 | 0x20 | 908,643 | any | zlib |
 | 0x04 | 100,026 | BC1 | BCPack (decodes, [§6](06-bcpack.md#60-status)) |
-| 0x0C | 35 | BC3 | BCPack |
+| 0x0C | 35 | BC3 | BCPack (decodes, fitted tables, [§6](06-bcpack.md#62-bc3-blocks-codec-0x0c)) |
 | 0x10 | 77 | BC4 | BCPack |
 | 0x14 | 325 | BC5 | BCPack |
 | 0x18 | 268 | BC6H | BCPack |
-| 0x1C | 5,120 | BC7 | BCPack |
+| 0x1C | 5,120 | BC7 | BCPack (decodes, fitted tables, [§6](06-bcpack.md#63-bc7-blocks-codec-0x1c)) |
 | 0x00 | 5 | any | stored (read as is) |
 
 BCPack ids are the BC number × 4 (`0x04` BC1 … `0x1C` BC7); zlib is `0x20`.

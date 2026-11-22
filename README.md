@@ -37,7 +37,7 @@ differ.
 |------|-----------|---------|
 | RPF9 archives | header layout; payload is plain zlib | the table of contents is encrypted, so there are no file names or paths |
 | Resources | system/graphics pages, pointers, names inside resources | some unnamed resources |
-| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts (BC and all uncompressed formats); BCPack lane decoding and usable BC1 exports (98.4 % of 352 K store textures readable at full size with BC1); embedded tint palettes | **BCPack** byte-exact block reconstruction across all codecs; where the real mip count is stored |
+| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts (BC and all uncompressed formats); BCPack lane decoding; BC1, BC3 and BC7 decode (99.9 % of 357 K store textures readable at full size; BC3 and BC7 with fitted tables); embedded tint palettes | **BCPack** BC4, BC5, BC6H; byte-exact reconstruction (fitted BC3/BC7 tables); where the real mip count is stored |
 | Models | vertex streams, meshlet index buffers, LODs, skeletons, skinning (incl. u16 bone indices; ped clothing with 8 influences through a bone palette to the shared ped skeleton), shaders' texture references; shader names (all) and most parameter names | texture names (64-bit hash), constant buffers |
 | Vehicles | parts, damage and mod-kit parts, wheel mounts; model info, spawn configurations (body colour, rim, tyre), weighted paint-colour lists, handling records | how the wheel scale sizes the shared wheels, secondary colours, liveries, many handling fields |
 | Peds | clothing skinning (8 influences, bone palette, shared 596-bone skeleton); head faces through material presets (893 of 1,657 heads); body-shape presets, the control → rig-input map and the pose-rig format, which runs | head skinning, faces of the other heads, two rig ops, lower-LOD rigs, rig input names |
@@ -55,9 +55,10 @@ differ.
 ## Biggest open problems
 
 - **BCPack**, the Xbox Series hardware texture codec. The entropy stream
-  decodes on tested chunks for all six observed codecs. BC1 has usable
-  exports, and BC3 through BC7 have candidate rebuilders, but byte-exact
-  reconstruction is not established across the corpus.
+  decodes on tested chunks for all six observed codecs. BC1, BC3 and BC7
+  decode (BC3 and BC7 with fitted history tables); BC4, BC5 and BC6H have
+  candidate rebuilders only. Byte-exact reconstruction is not established
+  for any codec.
   [Status and how to resume](formats/06-bcpack.md#60-status).
 - **Collision surface names**: the surface id hash is unknown. (Shader and
   parameter names are solved: joaat of the lower-case name.)

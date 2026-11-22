@@ -307,7 +307,13 @@ quaternion tracks agree.
 The 0x20-byte sequence header gives the payload size at `+0x04`, the
 payload-relative frame-data offset at `+0x0C`, and the header-relative
 root-motion offset at `+0x10` (all u32). The frame count and bytes per
-frame are u16 values at `+0x16` and `+0x18`.
+frame are u16 values at `+0x16` and `+0x18`. In all 307 cached
+sequences, `+0x14` was 2 and `+0x1E` was 0x0b; their meanings are open.
+The `u16` at `+0x1A` is the sum of `(table_words + 5)` over the type-5
+channels, and `+0x1C` is the sum of the type-4 frame bit widths. The
+frame stride is the total frame-coded bits (32 for each type-3 channel
+plus the stored widths for types 4 and 5), rounded up to a 32-bit word;
+this layout check passed on all 307 cached sequences.
 
 Channel parameters precede the frame data. After
 `frame_count * bytes_per_frame` bytes of frame data, read **eleven**
@@ -342,8 +348,10 @@ component.
 **Type 10: incremental float.** The parameter record begins with a
 `u32` size in 4-byte words (including the header), four descriptor bytes,
 then `f32 quantum` and `f32 bias`. Descriptor bytes 0 and 1 give the bit
-widths of the offsets and initial values respectively; byte 2 is
-unidentified and byte 3 was zero in tested records.
+widths of the offsets and initial values respectively. Byte 2 is the
+rounded residual payload length per lane in 32-bit words
+(`lane_bits / 32`); byte 3 was zero in all 35,964 records across the
+299 cached sequences used for that check.
 
 Read the payload LSB-first. Divide the sequence into 64-frame chunks.
 Read one lane bit offset per chunk, then one initial quantized value per

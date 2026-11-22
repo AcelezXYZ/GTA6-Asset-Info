@@ -245,6 +245,21 @@ by codec ([structure/03](../structure/03-audio-awc.md)):
 Stream names are 29-bit hashes and are not recovered; streams are listed by
 bank offset and stream id.
 
+### Strand hair (grooms)
+
+```powershell
+# Every strand groom in packs.rpf as a GLB of line segments (~0.8 GB, under a minute)
+sixng grooms packs --out work/out/grooms
+# Also the scalp triangles between strand roots
+sixng grooms packs --out work/out/grooms --roots
+```
+
+20,010 grooms (hair, beards, brows, lashes, stubble, animal fur;
+[§19.2](../formats/19-ped-physics-resources.md#192-strand-hair-type-3)),
+one polyline per guide strand, in model space so they sit on their ped or
+animal. Which groom belongs to which ped is not known yet. Cloth and head
+deltas are not exported. Added 2026-11-22.
+
 ### Research helpers
 
 `sixng find-u32 <archive> --values <file>` searches meta struct instances

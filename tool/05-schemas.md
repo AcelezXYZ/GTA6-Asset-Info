@@ -61,7 +61,7 @@ mask pack slot hashes) and short CSP / BeamNG hints.
 
 **GLB contents:** nodes `root > modelN > geomNN_<off>`; attributes
 `POSITION`, `NORMAL`, `TANGENT` (where the game has one), `TEXCOORD_0..3`,
-`_COLOR0` (raw RGBA8), and for fragments `JOINTS_0` (u8, or u16 above 255
+`_COLOR0` (raw RGBA8), `COLOR_0` on models with a tint palette (the palette entry that `_COLOR0` blue selects, row 0, linear RGB; glTF viewers multiply it into the base colour; added 2026-11-21), and for fragments `JOINTS_0` (u8, or u16 above 255
 bones) / `WEIGHTS_0` with a glTF skin over the skeleton joints. One
 double-sided material per shader, alpha mode from the class. Car paint gets
 a grey `baseColorFactor`, metallic 0.6, roughness 0.25 and no albedo.

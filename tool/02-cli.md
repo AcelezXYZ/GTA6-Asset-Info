@@ -220,6 +220,31 @@ sixng movies movies --out out --extract --only 143205000
 sixng extract data --rtype txd -o out
 ```
 
+### Audio
+
+```powershell
+# Sound banks in audio.rpf: scan once (~2.5 min, index ~30 MB), then list
+sixng audio --min-seconds 30 --limit 10 --pretty
+# Indexes from before 2026-11-22 read the codec from the wrong byte: rescan
+sixng audio --rescan
+# Export a bank's streams (--stream <hex> for one, --all for every bank)
+sixng audio-export --bank 12a2000 --format both -o work/out/audio
+```
+
+The scan finds 7,160 banks with 1.6 M streams (about 1,300 hours). Export
+by codec ([structure/03](../structure/03-audio-awc.md)):
+
+| Codec | Export |
+|---|---|
+| Opus | Ogg Opus (lossless remux) or WAV (decoded, 16-bit, 48 kHz); the encoder delay is taken as 312 samples and the end is trimmed to the stream's sample count |
+| Opus music (1–8 sub-streams) | one `.opus` / `.wav` per sub-stream, named `<bank>_<stream>_<sub-stream id>` |
+| PCM16, float32 PCM | WAV, samples as stored |
+| XMA2 | `.xma`: RIFF WAVE with an XMA2 format header, a lossless remux of the 2 KiB packets |
+| any | `--format awc`: the raw bank |
+
+Stream names are 29-bit hashes and are not recovered; streams are listed by
+bank offset and stream id.
+
 ### Research helpers
 
 `sixng find-u32 <archive> --values <file>` searches meta struct instances

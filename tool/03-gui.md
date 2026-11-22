@@ -202,11 +202,21 @@ BCPack BC1, BC3 and BC7 textures decode; textures with no readable mip (BC4,
 BC5 and BC6H BCPack, [§6](../formats/06-bcpack.md)) cannot be previewed. Texture arrays and cube maps show slice 0 / face 0;
 use `sixng ttpf --all-slices` for the others.
 
+## Audio tab
+
+Lists the sound banks in `audio.rpf`. The first visit offers a scan (about
+2.5 min; the same index as `sixng audio`). Filter banks by bank offset or
+stream id (hex) and a minimum length; a bank shows its streams with length,
+rate and layout. **▶ Play** decodes and plays an Opus stream, with mute and
+volume controls. Streams export one at a time or per bank to
+`<work>/out/audio/`, in the formats of [`sixng audio-export`](02-cli.md#audio);
+**Export bank .awc** writes the raw bank. Multichannel music exports but
+does not play.
+
 ## More coming
 
 Planned: a user-friendly library home and setup wizard, per-target
-previews (BeamNG, Assetto Corsa), day/night, a change report, and an
-audio browser.
+previews (BeamNG, Assetto Corsa), day/night and a change report.
 
 ## Command-line screenshots
 

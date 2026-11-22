@@ -201,6 +201,22 @@ last copy is the full-resolution cube.
 Seen: light cookies (`lighting.ttpf`), sky/star cubes and interior room
 cubes (shop walls, ceiling and floor).
 
+## Recovering individual plain mips
+
+A texture with mixed codecs can have readable individual levels.
+Compute the tiled surface layout from its format, dimensions, tile
+mode, mip count and slice count. Map its chunks to decoded byte ranges
+using the logical chunk index. Check that the sum of the declared
+decoded lengths equals the expected surface size.
+
+For a chosen mip and slice, use only the chunks covering its tiled
+byte range, including the tail block where applicable. The coverage
+must be contiguous and wholly within plain zlib chunks. Inflate every
+covered chunk and require its decoded length to match the logical
+index before gathering and detiling the mip. A codec tag alone is
+insufficient to validate a chunk. Report levels independently if any
+chunk cannot be decoded.
+
 ## Coverage (all 57 stores, 352,461 textures)
 
 **Since BC1 BCPack decodes** (2026-11-21; chunk-table check over the 46

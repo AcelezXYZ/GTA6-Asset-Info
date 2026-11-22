@@ -6,9 +6,9 @@
 |---|---|
 | PSO (`PSIN`; sections LSCH/LENM/LSNS/LGID/LRSC/CHKS) | **decoded** (2026-11-21): the plain-file form of the meta format of [§8](08-meta.md). Section headers are big-endian; the block table and references are little-endian; the `LSCH` schema names fields with 32-bit joaat (struct names are 64-bit). 2,225 of 2,281 files in `data.rpf` decode. See [PSO](#pso) and [Vehicle handling](#vehicle-handling) |
 | RBF (`RBF0`) | a new variant with u16 indices and inline names; exported raw |
-| `core_bvh4.rpf` | BVH4 collision with packed 24-bit indices; not decoded |
+| `*_bvh4.rpf` | dehydrated GPU acceleration structures and a mount manifest. See [GPU BVH4](#gpu-bvh4) |
 | XML, text | plain; exported as is |
-| shader cache (`shaders.rpf`) | one compiled cache, no names; layout notes in [structure/06](../structure/06-models-shaders.md) |
+| shaders (`shaders.rpf`) | compiled cache and DXBC-wrapped native shader programs. See [structure/06](../structure/06-models-shaders.md) |
 | audio (AWC/ADAT) | container layout, chunk tags and Opus framing in [structure/03](../structure/03-audio-awc.md); radio stations and scheduling in [§18](18-radio.md); not exported by the tool |
 | animation (`anim.rpf`) | clip dictionaries and cutscene metadata; clip metadata decodes (confirmed); skeleton not in the clip dictionaries. See [Animation](#animation) |
 | ped body shape | presets in `common.rpf`, a control-to-input PSO and pose rigs in `anim.rpf`; the rig program runs (confirmed). See [Ped body shape](#ped-body-shape) |
@@ -28,11 +28,12 @@ little-endian.
 
 | Section | Contents | Confidence |
 |---|---|---|
-| `PSIN` | instance data: a block table from +8, entries {u32 struct hash (low 32 bits of the 64-bit struct name), u32 length, 8 × `0xAA`}, then the blocks, each 16-byte aligned. References are u64 `(offset << 20) \| block` with a 1-based block | confirmed |
+| `PSIN` | instance data: a block table followed by 16-byte-aligned blocks. See [the v22 and unversioned script layouts](../structure/04-pso-objectgraph.md#script-psin-headers). References are u64 `(offset << 20) \| block` with a 1-based block | confirmed |
 | `LSCH` | schema: 32-byte struct entries {u64 name hash, u32 info, u32 0, 8 × `0xAA`, u32 size, u16 0, u16 member count}, then all members in table order as 16-byte records **identical to §8**: {u32 name, u32 offset, u8 type, u8 sub, u16 reference, u32 extra} | confirmed |
 | `LRSC` | a copy of the meta resource header (`0DRP`, type 0x7a): +0x38 u16 struct count, +0x3A u16 root block, +0x3C u16 block count | confirmed |
 | `LENM` | enums, 64-bit names | not decoded |
-| `LSNS`, `LGID`, `CHKS` | — | not decoded |
+| `LSNS` | [table framing](../structure/04-pso-objectgraph.md#lsns-framing) and 16-byte records in the script bundles | confirmed framing; record contents unresolved |
+| `LGID`, `CHKS` | — | not decoded |
 
 - **Names**: struct names are 64-bit hashes (function unknown). Member
   names are 32-bit **case-sensitive joaat**, and GTA V's names match
@@ -60,6 +61,27 @@ Type codes not in [§8](08-meta.md):
 
 In PSO, `0x65` bit sets take 16 bytes (the first u64 is used) and `0x44`
 takes 16 bytes, probably a string reference into `LSNS` (not decoded).
+
+## GPU BVH4
+
+The sampled `core_bvh4.rpf` and shared minigame BVH4 entries carry
+dehydrated GPU ray-tracing acceleration structures. CPU collision
+bounds have their own [phBound layout](13-collision.md).
+
+After inflating an entry, the 0xD0-byte system block gives the
+graphics size as a u32 at `+0xA0`. The graphics block has a
+0x40-byte header at `+0x100`. The u32 at graphics `+0x104` counts
+64-byte units. The size check is
+`graphics_size == 0x140 + 64 * units`. This held in both sampled
+archive families. Observed hierarchy words carry a 24-bit value in
+bits 0–23 and a child count of 0–4 in bits 24–31.
+
+`story000_bvh4.rpf` contains four zlib-compressed XML records.
+Its content and setup records reference terrain and merged BVH packs
+for mounting. Joining archived BVH4s back to meshes and rehydrating
+the console representation remain open. A desktop DXR check built its
+own acceleration structures from decoded triangles and compared ray
+hits with a CPU tracer.
 
 ## Vehicle handling
 
@@ -133,8 +155,32 @@ Every frame table checks out against the file size.
 | 512 × 256, 2048 × 558 | 2 each |
 
 Audio: 319 files have none, 165 one track, 30 two, 1 four; all 48 kHz
-stereo. The longest video runs 534 s. Original file names are not
-recovered.
+stereo. The longest video runs 534 s. An ordered join to the plaintext
+content list recovers file names in matched groups. Groups with missing
+or unlisted entries may only support a group label.
+
+### Bink Audio framing
+
+At the start of each indexed frame, read one `u32 packet_size` and
+its payload per audio track, in track order. A nonempty payload begins
+with a `u32 decoded_byte_count` followed by the encoded audio. Bound
+every packet by the next frame offset or the declared file size.
+
+To decode a track as standalone Bink Audio 2 DCT, carry the encoded
+packets in frame order in a minimal UEBA stream. Save the
+`decoded_byte_count` values for the sample total and strip those four
+bytes from each encoded packet. All fields below are little-endian.
+
+| Offset | UEBA field |
+|---:|---|
+| `0x00` | ASCII bytes `ABEU` |
+| `0x04` | u8 version 1, u8 channel count, two zero bytes |
+| `0x08` | u32 sample rate, u32 samples per channel `sum(decoded_byte_count) / (2 * channels)` for 16-bit audio |
+| `0x10` | eight zero bytes, u16 seek-entry count 0, u16 zero terminator |
+| `0x1C` | repeated `{u16 zero, u16 encoded_size, encoded_bytes[encoded_size]}` |
+
+The decoded track durations closed within one video frame across the
+audio-bearing files.
 
 ## UI graphics
 
@@ -168,6 +214,23 @@ seven windows).
 Clip names, durations and sequence channels decode (confirmed). Sampled rotation
 tracks validate as unit quaternions: 3.95 M values, worst |q| − 1 about 1.2e-7
 (confirmed). The skeleton is not stored in the clip dictionaries.
+
+The 0x20-byte sequence header gives the payload size at `+0x04`, the
+payload-relative frame-data offset at `+0x0C`, and the header-relative
+root-motion offset at `+0x10` (all u32). The frame count and bytes per
+frame are u16 values at `+0x16` and `+0x18`.
+
+Channel parameters precede the frame data. After
+`frame_count * bytes_per_frame` bytes of frame data, read **eleven**
+u16 channel-list counts and their u16 lists. Pad each list to a multiple
+of four u16 words. The lists end at the root-motion region. Each
+root-motion reference consumes six bytes.
+The high and low nibbles of byte `+0x1F` count position and rotation
+references. Check that the lists close at
+`0x20 + payload_size - 6 * (position_count + rotation_count)`.
+This size check passed on all tested sequences. Channel type
+9 had zero entries in the sample. Type 10's list is readable and its
+parameter encoding remains open.
 
 ## Ped body shape
 
@@ -299,6 +362,38 @@ GXT resources are `0DRP` type `0x7a`. A tag table points at a `0x101` key
 table, `0xA8478889` locators, `0x956A9DF5` / `0x10075946` locale-variant groups
 and items, and `0x10` text pages (confirmed). Keys are joaat, stored in 4,096
 or 2,048 buckets (confirmed).
+
+### Key lookup
+
+Read the 16-byte descriptors backwards from the root minus 0x10 until
+the locator descriptor is reached, then reverse them to get the
+text-page order. Each descriptor is `{u32 tag, u32 size, u64 pointer}`.
+Pointers use the system base `0x50000000`.
+
+1. Hash the ASCII-lowercased identifier with unseeded joaat. A
+   0x110-byte bucket has 16 fingerprint bytes followed by 16 records
+   of `{u32 key, u32 zero, u64 value}`.
+2. Start at `(key >> 7) & (bucket_count - 1)`. Compare the full key
+   in slots whose fingerprint equals `key & 0x7F`. If none matches,
+   stop on a bucket containing an empty slot (`0x80`). Otherwise advance
+   one bucket, wrapping at the end. Bound the probe by the bucket count.
+3. In the matching row, `value & 0xFFFFFF` is the kind and
+   `value >> 24` is a slot in units of 16 bytes. Kind 1 points into
+   the direct locator table. Read its u64 text locator at row `+0x08`.
+   Kind 7 points into the variant-group table.
+4. Decode a text locator with `page_index = (locator & 0xFFFFF) - 4`
+   and `byte_offset = locator >> 20`. Resolve the resulting offset
+   inside its text page to a NUL-terminated UTF-8 string. The offset
+   must be the start of the page or follow a NUL, and the terminator
+   must be inside the page.
+
+A variant group is 0x20 bytes. It holds u32 count and capacity at
+`+0x08` and `+0x0C`, and a u64 item reference at `+0x10`. The
+reference's low 24 bits are 8. Its high bits give the first slot in the
+variant-item table. Item `i` is at `16 * (first_slot + 2 * i)`
+bytes into that table, with its text locator at `+0x00` and u64
+attributes at `+0x08`. This lookup recovers the stored alternatives.
+The runtime selection rule for the attributes is unknown.
 
 ---
 

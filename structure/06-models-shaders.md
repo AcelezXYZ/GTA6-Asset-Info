@@ -41,8 +41,8 @@ geometry for those entries is not in the `PSIN` payload itself.
 
 ## Shader cache
 
-Shaders are **not** DXBC or DXIL. They are native AMD **RDNA2 (GFX10.3)** machine code inside a
-`PS\x00\x09` pipeline-state-object cache.
+A `PS\x00\x09` pipeline-state-object cache carries native AMD **RDNA2**
+machine code.
 
 Observed cache layout:
 
@@ -67,13 +67,40 @@ Binding metadata: chunk `0x41` carries user-data root-signature records (`SRV 0x
 `CBV 0x302`, `UAV 0x303`, `Sampler 0x002`), `0x42` register slots, `0x43` 128-bit shader hashes,
 plus `COMPUTE_PGM_RSRC1/2` and the `[numthreads(x,y,z)]` triple.
 
-Two independent counts of the same cache disagree on stage totals, so stage classification depends
-on the classifier used; the instruction stream itself is unaffected.
+## DXBC-wrapped native programs
+
+`shaders.rpf` also contains DXBC wrappers carrying native code.
+The stage is the high 16 bits of the first u32 of the DXIL part payload.
+The offset named by the DXIL header's bitcode field leads to a four-byte
+`NOBC` marker. Native code is reached through `XDAT` at payload
+`+0x18`.
+
+1. In `XDAT`, the u32 at `+0x04` counts 12-byte descriptors beginning
+   at `+0x0C`. Each has a type, offset from the start of the DXIL part
+   payload, and byte length (all u32). Descriptors of type `0x0D` lead
+   to `XBCH` blocks.
+2. Each `XBCH` block has a 0x18-byte header. The u64 fields at `+0x08`
+   and `+0x10` give stored and expanded sizes. Inflate the zlib stream
+   at `+0x18` and check the expanded size.
+3. The output begins with `FSSM`. The u64 at `+0x08` gives the
+   declared length, followed by a 16-byte trailer outside that length.
+   The u64 fields at `+0xC0` and `+0xC8` bound the code region.
+   The instructions start 0x28 bytes into the region. Disassembly
+   uses AMD `gfx1013`. The measured entry decode ends at the first
+   `s_endpgm` instruction.
+
+Count wrappers and native spans separately. In the audited archive,
+195 vertex wrappers each held two distinct spans. This gives
+26,503 DXBC wrappers and 26,698 spans, including a separate set of
+195 geometry wrappers. The two-span vertex selection rule remains open.
+After deduplication by code bytes, all 15,110 indexed native entries
+matched LLVM instruction decoding through the first `s_endpgm`.
 
 ## Open questions
 
 - The 64-bit hashes in the shader cache. (The 32-bit shader and parameter hashes in drawables are
   joaat of the lower-case name; see [formats §12](../formats/12-materials.md).)
+- Runtime selection of vertex spans, pass variants and material bindings.
 - Whether meshlet vertex data uses a dictionary encoding (a small shared u16 vocabulary is
   observed across bodies, suggesting one).
 - BCPack decoding for compressed surfaces.

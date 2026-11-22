@@ -33,7 +33,7 @@ u32 magic `0x4042` at 0.
 | Slot | Fmt | Size | Meaning | Confidence |
 |------|-----|------|---------|-----------|
 | 0 | 0x42 | 8 | position (below) | confirmed |
-| 1 | 0x26 | 4 | RGBA8 vertex colour: **b = tint palette index** ([§12](12-materials.md#tint-palettes)); a = layer-2 weight on multilayer shaders; r probably a baked shading term, g a surface mask on ground shaders ([§12](12-materials.md#vertex-colour-red-and-green)) | confirmed (b, a); r, g inferred |
+| 1 | 0x26 | 4 | RGBA8 vertex colour: **b = tint palette index** ([§12](12-materials.md#tint-palettes)); a = layer-2 weight on multilayer shaders; r and g unknown ([§12](12-materials.md#vertex-colour-red-and-green)) | confirmed (b, a); r, g unknown |
 | 2 | 0x21 | 4 | normal, octahedral 10:10 | confirmed |
 | 3 | 0x28 / 0x42 | 4 / 8 | UV0: 2 × s16 / 8192, or 2 × f32 | confirmed |
 | 4 | 0x28 | 4 | UV1 | confirmed |
@@ -115,6 +115,7 @@ agree with the stored normals; flip the rest.
 | model-array header | 16 bytes {ptr → model-pointer array, u16 count, u16 capacity} | confirmed |
 | LOD group | pointers to model-array headers at **+0x50, +0x58, +0x60, +0x68** of the main drawable (high, med, low, vlow; empty = 0). Main drawable = the root of a `.#dr`, the struct at root+0x18 of a `.#ft` | confirmed (2026-11-20) |
 | embedded drawables | other model arrays belong to embedded drawables: fragment children (root+0x10, records 0xC0 apart, each with its own +0x50 list) and nested sub-drawables in buildings. They are parts, not LODs | confirmed layout; placement of fragment-child parts inferred |
+| drawable dictionaries | a resource whose own root has no LOD table can hold **several member drawables** (most map LOD / SLOD models are stored this way). Each member root has its own LOD group at +0x50…+0x68, a pointer at **+0xA8 to its name** (`<name>.#dr`, NUL-terminated, in the system page) and its own shader array (member root +0x10 → +0x10); model shader indices are local to the member. Members with the same name are one member; a resource with one named drawable, a fragment, or a root with its own LOD table is not a dictionary (other named drawables there are embedded parts). With members linked by name, 99.98 % of map placements resolve to a model (2026-11-22) | confirmed |
 | drawable bounds | root +0x30 / +0x40 bbox min / max (drawables only) | confirmed |
 | fragment bounds | fragment root +0x18 → its drawable, whose +0x30 / +0x40 hold the bbox | confirmed |
 | stored bbox reliability | not always the geometry's extent: on route-sign prefab fragments it is shifted about 4.3 m in x, and on one scaffolding model it is rotated 90° about z. The archetype definition's bbox matches the decoded geometry in both cases (as of 2026-11-20) | confirmed (2 cases) |

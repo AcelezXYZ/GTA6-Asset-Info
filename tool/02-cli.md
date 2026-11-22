@@ -11,6 +11,9 @@
   turns it off.
 - On error the CLI prints `{"ok":false,"error":"…"}` and exits with code 1.
 - **Entry ids** are `<archive>@<hex offset>` (e.g. `levels.rpf@10f2d2d010`).
+  A member of a drawable dictionary is `<entry id>#<member name>`; `extract`
+  and `inspect` accept these, and each member exports as its own model
+  (2026-11-22).
   They are stable for one install and can be passed to `--id`.
 - **Archives** are named by their stem (`levels`, `data`, `navmeshes` …) or
   by path for stores (`data/ttdb/vehicles/ttdb_vehicles.ttpf`).

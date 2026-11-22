@@ -134,10 +134,11 @@ pool-blue, white cables black, grey or blue.
   [§9](09-placements.md)); unverified. Row 0 is the default.
 
 **Texture hashes in no store.** Embedded tint palettes account for 30,095 of
-the 33,770 texture hashes that a full map export finds in no `ttpf` store.
-The other 3,675 are in no store or resource of the install, including the
-12 `pack/*/data/ttdb` stores (about 1.2 GB); `1e2c9340e14a7d07` and
-`aa3eeff23a15dc75` are probably engine defaults (inferred).
+the 33,770 texture hashes that a full `levels.rpf` map export finds in no
+`data/ttdb` store. The other 3,675 are in no store or resource of the
+install, the content-pack stores included ([§5](05-ttpf.md); they serve the
+packs' own models); `1e2c9340e14a7d07` and `aa3eeff23a15dc75` are probably
+engine defaults (inferred).
 
 ## Open questions
 

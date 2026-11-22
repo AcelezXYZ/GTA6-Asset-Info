@@ -185,7 +185,9 @@ normals (the viewer derives them).
 
 ## Textures tab
 
-Every texture in the `ttpf` stores, without going through a model.
+Every texture in the `ttpf` stores, without going through a model. The
+content-pack stores show as `<pack>/<store>` (`story000/ttdb_maps.ttpf`);
+exports use them too.
 
 - Filter by store, by format and by minimum size; the count updates as you
   filter.

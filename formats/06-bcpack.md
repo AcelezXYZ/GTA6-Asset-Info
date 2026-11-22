@@ -16,8 +16,8 @@ format across all titles.
 | Codec | Entropy decoding | BC block reconstruction |
 |---|---|---|
 | `0x04` BC1 | Confirmed on sampled chunks with two implementations. | Working exports. Some endpoint presets and selector codebook entries still differ between implementations. |
-| `0x0C` BC3, `0x10` BC4, `0x14` BC5 | Two implementations agree on every symbol and consume the full input on 5 BC3, 2 BC4 and 5 BC5 samples. | [Leonida #312](https://github.com/ItsNotRexed/Leonida/pull/312) supplies rebuilders. A complete BC3 mip renders without endpoint presets, but still uses the candidate selector tables. No independent same-mip byte comparison for these formats. |
-| `0x18` BC6H, `0x1C` BC7 | All 268 BC6H and 5,120 BC7 chunks in the local scan consumed their exact input and emitted the expected symbol counts per lane. All symbols also matched a second implementation on 5 BC6H and 24 BC7 spot checks. | [Leonida #576](https://github.com/ItsNotRexed/Leonida/pull/576) supplies candidate rebuilders with external history tables. Some fields can be constrained without those tables, but there is no independent byte-exact match for a complete shipped chunk of either format. |
+| `0x0C` BC3, `0x10` BC4, `0x14` BC5 | Two implementations agree on every symbol and consume the full input on 5 BC3, 2 BC4 and 5 BC5 samples. | Candidate rebuilders exist. A complete BC3 mip renders without endpoint presets, but still uses the candidate selector tables. No independent same-mip byte comparison for these formats. |
+| `0x18` BC6H, `0x1C` BC7 | All 268 BC6H and 5,120 BC7 chunks in the local scan consumed their exact input and emitted the expected symbol counts per lane. All symbols also matched a second implementation on 5 BC6H and 24 BC7 spot checks. | Candidate rebuilders exist, but they need initial history tables that are not derived here. Some fields can be constrained without those tables, but there is no independent byte-exact match for a complete shipped chunk of either format. |
 
 For BC1, the block count is the chunk's virtual size divided by 8.
 Strip the trailing pad from the stored bytes (`b >> 20` in the chunk
@@ -47,8 +47,7 @@ per lane. The BC1 lanes are:
 | 8-11 | Selector codebook symbols for the top-left, top-right, bottom-left and bottom-right 2x2 quadrants, not four rows. |
 
 **Fragment framing and byte order (confirmed for the tested streams).**
-The lane state machine follows the public
-[Microsoft MDU rANS core](https://github.com/microsoft/silicon-rans).
+Each lane is a byte-wise rANS state machine.
 The first header byte sets the alphabet narrowing, length form, flush flag
 and static model number. The short form has `lo + 1` payload bytes; the
 long form has `(lo + (hi << 8)) + 257`. This includes state bytes read
@@ -59,9 +58,7 @@ each lane or give every requesting lane a byte every clock.
 **End checks (confirmed).** Require the expected symbols in every lane,
 every non-padding input byte accounted for, and a legal terminal state.
 With `L = 2^24`, the allowed final states are `L`, `L >> 8` and `L >> 16`;
-requiring `L` alone rejects valid streams. See the pinned
-[bcpack-rs format specification](https://github.com/Ahmet-Dedeler/bcpack-rs/blob/0a887de1edc9c22a425605091f1a8365fdf74dbb/docs/BCPACK_SPEC.md)
-for the full clocked model and fragment rules.
+requiring `L` alone rejects valid streams.
 
 ## 6.2 Ruled out
 

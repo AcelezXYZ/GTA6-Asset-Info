@@ -145,6 +145,14 @@ true count is stored is unknown; it does not map to a single bit field.
   (format, tile mode) pair in the stores is left undecodable. The 2-byte
   `SW_64KB_D` order is x-first by the block shape; square samples cannot
   tell it from its transpose (inferred).
+- **R16_FLOAT array at twice its size** (one texture, `fd954c597b21d41c` in
+  `ttdb_graphics`: 256 × 32, 8 slices, tile mode 1, one mip; confirmed,
+  2026-11-21). Each slice takes 32 KiB instead of 16 KiB: every other KiB is
+  zero. Each 4 KiB block holds 32 × 32 elements, with address bits 1–9 =
+  `x0 y0 y1 x1 y2 x2 x3 y3 x4` and bit 11 = `y4` (bit 10 is the unused
+  KiB). The content is smooth gradients, probably a lookup table. With it,
+  every texture in the stores decodes apart from the BCPack codecs of
+  [§6](06-bcpack.md).
 - **1-byte formats** (A8 = DXGI 65, R8) decode with these orders in every
   tile mode (confirmed, 2026-11-21): 126 textures (119 A8 decal and mask
   textures, 7 R8); mip 1 matches mip 0 downsampled at a median of 63 dB.

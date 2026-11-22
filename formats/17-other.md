@@ -414,6 +414,19 @@ or kind-8 markers at the end of a rotation group: markers consume no
 parameter or frame bits, so same-kind markers can share offsets. The
 group's other references identify the track.
 
+**Type 5: indirect quantized float.** The parameter record is
+`{i32 index_bits, i32 value_bits, i32 table_words, f32 quantum, f32 bias}`
+followed by `table_words` `u32` words, so it occupies
+`20 + 4 * table_words` bytes. Each packed frame stores an
+`index_bits`-wide LSB-first index. The index selects an LSB-first
+`value_bits`-wide entry from the bit-packed table, and the value is
+`entry * quantum + bias`. In 668 type-5 channels from 218 sequences, the
+header `+0x1A` total matched every sequence, every channel used a dense
+index range starting at 0, and all bits after the table entries were
+zero. Index `(1 << index_bits) - 1` never occurred, including in 229
+channels whose table could hold it. All 118 shared-frame comparisons of
+tracks containing type-5 channels agreed within 0.001.
+
 **Type 10: incremental float.** The parameter record begins with a
 `u32` size in 4-byte words (including the header), four descriptor bytes,
 then `f32 quantum` and `f32 bias`. Descriptor bytes 0 and 1 give the bit
@@ -450,9 +463,16 @@ Each chunk's widths sum to the distance to the next stored lane offset.
 The last lane end, rounded to 32 bits and multiplied by eight, accounts
 for the rest of the record. Both checks passed for **36,158 records in
 302 sequences**. Type 10 contributes no bits to the per-frame stream.
-This layout produces continuous rotations in tested clips, but does
-not resolve all observed type-5 anomalies or all within-sequence
-discontinuities; type 9 remains undecoded.
+This layout produces continuous rotations in tested clips.
+
+Large steps inside a source are not necessarily decode errors. Of 303
+consecutive-frame quaternion steps above 0.5 on tracks containing type-5
+channels, 297 were on the target-0 trajectory rotation track. In each,
+the heading jumped to identity exactly on a frame where a catalogued
+clip window starts or ends. Sample the clip window rather than the whole
+source. The other six steps were on skeletal rotation tracks, and their
+cause is open, as are other within-sequence discontinuities. Type 9
+remains undecoded.
 
 ### Pose root and trajectory
 

@@ -106,6 +106,54 @@ sixng extract-category map --limit 200 -o out --dry-run
 
 One vehicle (`--name '^phoenix'`) is 248 parts and about 100 MB.
 
+`--paint RRGGBB` (or `AARRGGBB`, sRGB) sets the colour of car-paint
+materials (linear `baseColorFactor`, and `paint.colour` in `model.json`);
+`sixng vehicles` gives each model's colours. Materials of emissive shaders
+(`standard_emissive*` and the known emissive families) get their colour
+texture as `emissiveTexture`, so lamps, neon and screens light up.
+
+### Characters and animals
+
+```powershell
+# Every character and animal outfit can build (327 characters, 263 animals)
+sixng characters --kind animal --name deer
+# A character or animal as one rigged GLB; several clips, one glTF animation each
+sixng outfit crb_deer_whitetailed_m_00 -o out/deer.glb --clip "gameplay@creatures@land@mammal@deer@normal@run@fast/move,gameplay@creatures@land@mammal@deer@idle/idle"
+# Skeleton and animations only, to pair with the full model (same joint names)
+sixng outfit crb_deer_whitetailed_m_00 -o out/deer_walk.glb --anim-only --clip "gameplay@creatures@land@mammal@deer@normal@walk@slow/move"
+# Any name plus --parts (regexes over every drawable) builds an ad-hoc character
+sixng outfit hiker_m -o out/hiker.glb --parts '^head_mr1_cau_000_m_full','^hand_mr1_000_tshirt','^feet_mr1_000_shortsmid','^tshirtcrewneck_mr1_000.*_full$','^shortscargo_mr1_000','^bootshiking_mr1','^backpackhiking'
+```
+
+`outfit` skins a character's parts (its default look, or `--parts`; `--add`
+adds parts) to the shared ped skeleton plus their own helper bones, or an
+animal's parts to its root fragment's skeleton
+([§7.5](../formats/07-models.md#animals-and-one-bone-parts-2026-11-22)), and
+writes **one GLB with one skin**; textures go to `<glb dir>/textures/`.
+Joint lists are merged by name (a helper bone two parts define differently
+is kept twice, the second as `<name>.<part>`). One-bone parts are attached
+to their bone; fur placeholders are left out unless `--add fur`. `--clip
+<dictionary>/<clip>` adds bone tracks as glTF animations (root motion and
+float tracks are left out). The report on stdout gives unresolved joints
+and how many tracks land on a joint. Not done: root motion, facial
+animation, cloth.
+
+### Effects and fonts
+
+```powershell
+# Particle effect dictionaries: names, rule names; -o adds the keyframe curves
+sixng ptfx data --name scr_arc -o out
+# The 29 UI fonts as TrueType and three.js typeface JSON (~70 MB)
+sixng fonts data -o out
+```
+
+`ptfx` writes `<out>/ptfx/data/index.json` and one `<offset>.json` per
+dictionary ([§17](../formats/17-other.md#particle-effect-dictionaries)).
+`fonts` writes `<out>/fonts/<name>.ttf`, `<name>.typeface.json` and
+`fonts.json` ([§17](../formats/17-other.md#scaleform-ui-fonts)). The fonts
+belong to their owners; use them locally with your own install. All added
+2026-11-22.
+
 ### World data
 
 ```powershell

@@ -25,7 +25,9 @@ The texture-dictionary key at TXD +0x20 is plain joaat of the texture name
 77 of 229 parameters resolve, about 75 % of uses. 344 shaders over 254 K
 drawables (1.83 M shader instances) in `levels.rpf` + `packs.rpf`.
 
-Shader names give the families directly: emissive (`standard_emissive*`,
+Shader names give the families directly (lit signs and windows, e.g.
+`ginos_neon_sign`, use `standard_emissive` in the alpha bucket and
+`standard_emissive_layer` as cutout): emissive (`standard_emissive*`,
 `signs_emissive`, `*_emissive_layer*`, with an `emissivetex` slot), glass
 (`standard_vehicle_glass`, `standard_glass_breakable*`), water
 (`standard_alpha_water`, `water_micro_geom`, `standard_alpha_waterfall`),

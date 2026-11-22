@@ -1,5 +1,7 @@
 # 18. Radio station audio and scheduling
 
+*Part of the [SixNG format specification](README.md). Numbers as of 2026-11-22; confidence: inferred unless stated (observed on one install).*
+
 Xbox Series format notes. For the inputs, see the [music catalogue](17-other.md#music-catalogue)
 and [AWC container](../structure/03-audio-awc.md). A rotating station has
 pools of individual clips, including music, host voice, and breaks. A
@@ -36,7 +38,7 @@ Offsets inside the assembled `music.dat` are independent of archive offsets.
 
 | Payload | Archive offset | Check in the assembled payload |
 |---|---:|---|
-| `music.dat` | `0x74E000` | Object table at `0x77C437`, fix-ups at `0x83C15B` |
+| `music.dat` (confirmed: zlib start; the payload has the catalogue magic at `0x08`) | `0x74E000` | Object table at `0x77C437`, fix-ups at `0x83C15B` |
 | Sound index | `0xD268E0` | `(u32 name_hash, u32 body_offset)` pairs |
 | Sound bodies | `0xB02000` | Sound record at `body_offset + 8` |
 | Parameter records and index | `0x37000` | Kind-256 name hashes resolve to curve records |
@@ -78,15 +80,16 @@ gives only the station object.
    headroom. Derive chapters from the same timeline. Check each clip's
    identity and duration and log any transition that needed a fallback.
 
-For a quick local check, this joins two decoded WAV clips with a 500 ms
-overlap. Two 3-second inputs give 5.5 seconds of decoded output.
-
-```sh
-ffmpeg -i host.wav -i song.wav -filter_complex "[0:a]aformat=sample_rates=48000:channel_layouts=stereo[a];[1:a]aformat=sample_rates=48000:channel_layouts=stereo[b];[a][b]acrossfade=d=0.5:c1=tri:c2=tri[m]" -map "[m]" -c:a libopus preview.opus
-```
+A quick check of the overlap arithmetic: two 3-second clips joined with a
+500 ms overlap give 5.5 seconds.
 
 ## Open questions
 
 - Rotation timelines generated this way are simulations. Runtime flags,
   the game's exact factor and mix behavior, and the context for generic
   host lines remain unverified.
+
+
+---
+
+← [17. Other formats](17-other.md) · [Index](README.md)

@@ -37,7 +37,7 @@ differ.
 |------|-----------|---------|
 | RPF9 archives | header layout; payload is plain zlib | the table of contents is encrypted, so there are no file names or paths |
 | Resources | system/graphics pages, pointers, names inside resources | some unnamed resources |
-| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts (BC and 1-byte formats); BCPack BC1 (98.4 % of 352 K store textures readable at full size) | **BCPack** BC3–BC7 (0.8 % of textures); 4-/2-byte layouts |
+| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts (BC and all uncompressed formats); BCPack BC1 (98.4 % of 352 K store textures readable at full size); embedded tint palettes | **BCPack** BC3–BC7 (0.8 % of textures); where the real mip count is stored |
 | Models | vertex streams, meshlet index buffers, LODs, skeletons, skinning (incl. u16 bone indices; ped clothing with 8 influences through a bone palette to the shared ped skeleton), shaders' texture references; shader names (all) and most parameter names | texture names (64-bit hash), constant buffers |
 | Vehicles | parts, damage and mod-kit parts, wheel mounts; model info, spawn configurations (body colour, rim, tyre), weighted paint-colour lists, handling records | how the wheel scale sizes the shared wheels, secondary colours, liveries, many handling fields |
 | Peds | clothing skinning (8 influences, bone palette, shared 596-bone skeleton); head faces through material presets (893 of 1,657 heads); body-shape presets, the control → rig-input map and the pose-rig format, which runs | head skinning, faces of the other heads, two rig ops, lower-LOD rigs, rig input names |

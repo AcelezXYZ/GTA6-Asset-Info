@@ -79,11 +79,47 @@ boundary at or after the compressed stream's end. For example, at
 2,374 raw vertices begin at archive offset `0x9b25bb060`. All nine passed
 the same leaf geometry checks after appending the raw bytes.
 
-## 13.2 Surface ids (unresolved)
+## 13.2 Surface ids
 
-The id is a 15-bit hash of the material name (`ROAD_TARMAC`,
-`METAL_RAILING` …, from a material XML in `common.rpf`) with an **unknown
-function**. Ruled out: plain index; 15/16-bit folds of joaat, FNV-1/1a
+(Confirmed, 2026-11-22.) The surface id is
+
+```
+id = 18 + elf(name) % 32749
+```
+
+where `name` is the material name **as written** (upper case, underscores)
+in the material XML of `common.rpf`, and `elf` is the classic Unix ELF /
+PJW string hash:
+
+```
+h = 0
+for each byte c:  h = (h << 4) + c;  g = h & 0xF0000000;
+                  if g != 0: h ^= g >> 24;  h &= ~g
+```
+
+32749 is the largest prime below 2^15 (32749 + 18 = 32767), so ids lie in
+18–32766 and bit 15 is never set; 0–17 look reserved, and only 0 occurs in
+map collision. Example: `ROAD_TARMAC` → `elf` = `0x04D164F3` → 7199 → id
+**`0x1C31`**.
+
+| Evidence (389 distinct ids in map collision) | Count |
+|---|---|
+| readable `<name>` entries in the material XML | 413, all with distinct ids |
+| of those, ids that occur in map collision | **212** (random ids: mean 5.1, max 12 over 200 runs) |
+| `DEFORM_*` names from the deformable-terrain XML (`<PhysicsMaterials><Item>`) hitting otherwise unmatched ids | **9 of 11** (chance about 0.06) |
+| total resolved | **221 of 389 ids, 64 % of collision triangles** |
+
+The nine deformable materials are `DEFORM_DIRT_COMPACT`, `_DIRT_LOOSE`,
+`_QUICKSAND`, `_SEAWEED`, `_PLASTIC_MULCH`, `_PERIPHYTON_SOFT`, `_CLAY`,
+`_ALGAE` and `_RUBBISH`. Unmatched names are mostly ped and animal
+body-part materials (`SPINE…`, `THIGH…`) that map collision does not use.
+The remaining ids are most likely materials from the unreadable parts of
+the XML: its first block (file offset `0x20f000`–`0x210a62`) is neither
+zlib nor raw deflate at any start offset, and the block at `0x212190`
+stops inflating after 672 input bytes (5,239 bytes out, which still hold
+names).
+
+**History.** Before ELF was tried, these were ruled out: plain index; 15/16-bit folds of joaat, FNV-1/1a
 (32/64), CRC32/CRC32C, CRC-16 variants, Adler-32, Murmur2/3, xxHash32 over
 many name spellings and prefixes; GTA V's packed {material index,
 procedural id}. Part of the material list is also missing (holes in the
@@ -94,6 +130,9 @@ Shader and parameter names turned out to be plain joaat
 shift or fold of it (2026-11-21: 402 material names, as given, lower and
 upper case, every shift 0–17, xor-fold, three moduli; also seeded joaat
 with `0xC3CCF6AD` and five other seeds: best score 7 of 402, chance 3).
+A grid of 19 hash functions × 20 spellings × 25 reductions to 15 bits also
+stayed at chance; only adding an unknown constant to the reduction showed
+the ELF `% 32749` + 18 outlier.
 
 ## 13.3 Inferred surface categories
 
@@ -229,7 +268,7 @@ axis or the runtime limit solver.
 
 ## Open questions
 
-- The surface hash function and the full material list.
+- The rest of the material list (the XML blocks that do not inflate).
 - Material record flag bytes and the geometry `+0x138` target.
 - Joint-limit reference frames, swing evaluation and runtime constraint composition.
 - The runtime use of the physics-group pairs.

@@ -753,6 +753,10 @@ follows from the text. Copies of one table sit at fixed strides through
   depending on the file. Read keys only from the `0x101` block: a scan of
   the whole file for slot-shaped records finds false hits (e.g. key
   `00000006`).
+- **Big tables split the text over two or three `0x10` blocks** of up to
+  1 MiB each. A string reference's u64 at +8 is `(offset << 20) | block`,
+  with the block counted from 1 in the block table; reading only the first
+  text block gives wrong strings for about a third of a big table.
 - Labels are joaat of the lower-case label. A **subtitle's label is its
   voice-line name plus a 2-digit variation**, e.g. `AG_SUR_GEAR_FIRST1_01`.
   The minigames' dialogue PSO (`shared_minigame000.rpf@19000`) keys lines by

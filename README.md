@@ -42,10 +42,10 @@ differ.
 | Vehicles | parts, damage and mod-kit parts, wheel mounts; model info, spawn configurations (body colour, rim, tyre), weighted paint-colour lists, handling records | how the wheel scale sizes the shared wheels, secondary colours, liveries, many handling fields |
 | Peds | clothing skinning (8 influences, bone palette, shared 596-bone skeleton); head faces through material presets (893 of 1,657 heads); body-shape presets, the control → rig-input map and the pose-rig format, which runs; strand hair and fur (20,010 grooms, [§19](formats/19-ped-physics-resources.md)), cloth particles and edges, head identity deltas | head skinning, faces of the other heads, which groom belongs to which ped, two rig ops, lower-LOD rigs, rig input names |
 | Map data | self-describing meta resources; entities, LOD hierarchy and LOD parents (99 %), archetypes, grass and prop batches, interiors with rooms and entity sets | prefab placement, some hashed fields |
-| Collision | bounds geometry and primitives, surface ids; inferred surface categories for 98.3 % of area | surface names (unknown hash) |
+| Collision | bounds geometry and primitives, surface ids and their names (ELF hash; 221 of 389 ids named, 64 % of triangles); inferred surface categories for 98.3 % of area | names of the other surface ids (unreadable part of the material XML) |
 | Navmesh | tiles, polygons, road flag | most other flags |
 | Lights | position, colour, type, intensity, range, cones, hour mask | a few fields |
-| Road graph | nodes, links, lanes, speed limits, 34 of 51 node flags, junctions, traffic-light phases | some link flags, street names |
+| Road graph | nodes, links, lanes, speed limits, street names, 34 of 51 node flags, junctions, traffic-light phases | some link flags |
 | Video | 515 Bink 2 files, stored uncompressed and carved by header; frame index; per-track audio packet framing | frame decoding (needs a Bink 2 decoder), original names |
 | UI graphics | 75 named dictionaries (loading screens, HUD, gauges); the UI texture store (10,013 sprite atlases, 90 % complete) | BCPack parts, menu layouts, a minimap tile set (none found) |
 | Text | the localised text tables (14,482 in `data.rpf`, 4.21 M strings, one table per language), key lookup, variant groups, subtitle labels and markup | the language of each table, most label names, variant selection |
@@ -60,8 +60,9 @@ differ.
   BC5, BC6H and BC7 with fitted history tables, so some blocks speckle).
   Byte-exact reconstruction is not established for any codec.
   [Status and how to resume](formats/06-bcpack.md#60-status).
-- **Collision surface names**: the surface id hash is unknown. (Shader and
-  parameter names are solved: joaat of the lower-case name.)
+- **Collision surface names**: the id is `18 + elf(name) % 32749`, but part
+  of the material XML does not inflate, so 168 of 389 ids have no name yet.
+  [§13.2](formats/13-collision.md#132-surface-ids).
 - **The RPF9 TOC** is encrypted.
 - **Vehicle data**: colours, wheel choice and handling are decoded, but how
   the wheel scale sizes the shared wheel models, the secondary colours and

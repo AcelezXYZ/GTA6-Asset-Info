@@ -79,9 +79,7 @@ bits 0–23 and a child count of 0–4 in bits 24–31.
 `story000_bvh4.rpf` contains four zlib-compressed XML records.
 Its content and setup records reference terrain and merged BVH packs
 for mounting. Joining archived BVH4s back to meshes and rehydrating
-the console representation remain open. A desktop DXR check built its
-own acceleration structures from decoded triangles and compared ray
-hits with a CPU tracer.
+the console representation remain open.
 
 ## Vehicle handling
 
@@ -155,9 +153,10 @@ Every frame table checks out against the file size.
 | 512 × 256, 2048 × 558 | 2 each |
 
 Audio: 319 files have none, 165 one track, 30 two, 1 four; all 48 kHz
-stereo. The longest video runs 534 s. An ordered join to the plaintext
-content list recovers file names in matched groups. Groups with missing
-or unlisted entries may only support a group label.
+stereo. The longest video runs 534 s. Original file names are not stored
+with the files. Matching them in order against a plain-text content list
+is reported to recover names for some groups (unverified: the list is
+not identified).
 
 ### Bink Audio framing
 
@@ -166,21 +165,10 @@ its payload per audio track, in track order. A nonempty payload begins
 with a `u32 decoded_byte_count` followed by the encoded audio. Bound
 every packet by the next frame offset or the declared file size.
 
-To decode a track as standalone Bink Audio 2 DCT, carry the encoded
-packets in frame order in a minimal UEBA stream. Save the
-`decoded_byte_count` values for the sample total and strip those four
-bytes from each encoded packet. All fields below are little-endian.
-
-| Offset | UEBA field |
-|---:|---|
-| `0x00` | ASCII bytes `ABEU` |
-| `0x04` | u8 version 1, u8 channel count, two zero bytes |
-| `0x08` | u32 sample rate, u32 samples per channel `sum(decoded_byte_count) / (2 * channels)` for 16-bit audio |
-| `0x10` | eight zero bytes, u16 seek-entry count 0, u16 zero terminator |
-| `0x1C` | repeated `{u16 zero, u16 encoded_size, encoded_bytes[encoded_size]}` |
-
-The decoded track durations closed within one video frame across the
-audio-bearing files.
+The encoded audio after `decoded_byte_count` is Bink Audio. The sum of a
+track's `decoded_byte_count` values is its 16-bit PCM size, so samples per
+channel = sum / (2 × channels); the track durations computed this way
+match the video length within one frame across the audio-bearing files.
 
 ## UI graphics
 

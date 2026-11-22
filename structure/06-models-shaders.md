@@ -41,8 +41,9 @@ geometry for those entries is not in the `PSIN` payload itself.
 
 ## Shader cache
 
-A `PS\x00\x09` pipeline-state-object cache carries native AMD **RDNA2**
-machine code.
+Shaders are **not** DXBC or DXIL bytecode. They are native AMD **RDNA2 (GFX10.3)** machine code
+inside a `PS\x00\x09` pipeline-state-object cache, and in `shaders.rpf` also inside DXBC-shaped
+wrappers (below).
 
 Observed cache layout:
 
@@ -67,6 +68,9 @@ Binding metadata: chunk `0x41` carries user-data root-signature records (`SRV 0x
 `CBV 0x302`, `UAV 0x303`, `Sampler 0x002`), `0x42` register slots, `0x43` 128-bit shader hashes,
 plus `COMPUTE_PGM_RSRC1/2` and the `[numthreads(x,y,z)]` triple.
 
+Two independent counts of the same cache disagree on stage totals, so stage classification depends
+on the classifier used; the instruction stream itself is unaffected.
+
 ## DXBC-wrapped native programs
 
 `shaders.rpf` also contains DXBC wrappers carrying native code.
@@ -85,16 +89,16 @@ The offset named by the DXIL header's bitcode field leads to a four-byte
 3. The output begins with `FSSM`. The u64 at `+0x08` gives the
    declared length, followed by a 16-byte trailer outside that length.
    The u64 fields at `+0xC0` and `+0xC8` bound the code region.
-   The instructions start 0x28 bytes into the region. Disassembly
-   uses AMD `gfx1013`. The measured entry decode ends at the first
-   `s_endpgm` instruction.
+   The instructions start 0x28 bytes into the region. The code is
+   RDNA2 machine code; the entry ends at the first `s_endpgm`
+   instruction.
 
 Count wrappers and native spans separately. In the audited archive,
 195 vertex wrappers each held two distinct spans. This gives
 26,503 DXBC wrappers and 26,698 spans, including a separate set of
 195 geometry wrappers. The two-span vertex selection rule remains open.
 After deduplication by code bytes, all 15,110 indexed native entries
-matched LLVM instruction decoding through the first `s_endpgm`.
+decode as valid RDNA2 instructions through the first `s_endpgm`.
 
 ## Open questions
 

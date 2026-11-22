@@ -75,6 +75,9 @@ Unversioned scripts can have up to three. The meanings of the table
 identifiers and the 16-byte records remain open. A count of four has
 also been observed outside this script-bundle check.
 
+For `N = 1` this gives `tail_length = size − 12`, the rule first observed outside the script
+bundles; tails are 16-byte aligned.
+
 ### Walk failures
 
 Where the section walk fails, the cause is a 65,536-byte page cut: the declared header offset

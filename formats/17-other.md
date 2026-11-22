@@ -226,6 +226,27 @@ last path component without `.clip`. The set hash is the lowercase joaat
 of the directory without `pack:/` (130 records), or the dictionary name
 hash for flat `pack:/<stem>.clip` paths (1,650 records).
 
+### Scene clip references
+
+In the sampled `0DRP` v122 class registry, each entry's `u32` at
+`+0x18` is the **instance stride**, not descriptor byte length. Read
+the `u16` descriptor count at `+0x1e`, then that many 16-byte descriptors
+from the `+0x10` pointer. In the verified scene object graph, a packed
+reference stores a one-based block index in the low 20 bits and a byte
+offset within that block above them.
+
+The scene at `anim.rpf@0x94f010` reaches an inline class `0x24749343`
+through section/event references. Its descriptors identify
+`clipDictionaryName` (`0x25de16df`) at `+0x08` and `clipName`
+(`0x24fc8f24`) at `+0x0c`, both type-`0x4a` `u32` values. The pair
+`0x65d46c10`/`0x9302c678` selects dictionary `anim.rpf@0x272d5010` and
+clip `+0xdba60` (`pack:/jason_buddy_kiss_jason.clip`). That clip's source
+window uses source `+0xdc830`, sequence `+0xa7390`, from 4.5 to 7.9
+source seconds at rate 1. Dictionary `0x26eeb010` contains the same clip
+name and stem hash under a different dictionary hash (`0x7cb407d0`), so
+a name or stem match alone selects the wrong copy. This is one rooted
+reference path, not a full scene or gameplay-state parser.
+
 ### Clip windows and source tracks
 
 For the sampled type-2 clips, `+0x18` points to the
@@ -278,8 +299,8 @@ sample and the next sequence's first sample share a source time. All
 `sum(sequence_frame_counts) - (sequence_count - 1) = source_frame_count`.
 All 228 non-final sequence headers checked against the stride field
 matched. Across 44 decoded joins, scalar and vector samples agreed
-closely, but some quaternion tracks still disagreed with the current
-decoder.
+closely; the type-8 handling below makes all sampled shared-frame
+quaternion tracks agree.
 
 ### Sequence channels
 
@@ -294,7 +315,14 @@ u16 channel-list counts and their u16 lists. A list word is
 `track_index << 2 | component_index`; the track index addresses the
 12-byte rows. In the sampled type-7 cached quaternion records, the low
 two bits identify the omitted XYZW component, reconstructed as the
-positive square root of `1 - sum(other_components^2)`. Pad each list
+positive square root of `1 - sum(other_components^2)`. Type 8 is
+different: the scalar channels store all four XYZW components, and the
+type-8 marker consumes no parameter or frame bits. Read all four stored
+values by slot index and normalize them for playback. Across 1,885
+type-8 tracks (1,286,011 samples), the largest pre-normalization norm
+error was 0.00137. Keeping all four values brought all 855 shared-frame
+comparisons below a sign-invariant quaternion distance of 0.01, while
+discarding one component produced 505 mismatches above 0.5. Pad each list
 to a multiple of four u16 words. The lists end at the root-motion region. Each
 root-motion reference consumes six bytes.
 The high and low nibbles of byte `+0x1F` count position and rotation
@@ -346,8 +374,8 @@ The last lane end, rounded to 32 bits and multiplied by eight, accounts
 for the rest of the record. Both checks passed for **36,158 records in
 302 sequences**. Type 10 contributes no bits to the per-frame stream.
 This layout produces continuous rotations in tested clips, but does
-not resolve all observed type-5 and type-8 anomalies; type 9 remains
-undecoded.
+not resolve all observed type-5 anomalies or all within-sequence
+discontinuities; type 9 remains undecoded.
 
 ### Pose root and trajectory
 

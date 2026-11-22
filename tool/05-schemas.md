@@ -200,13 +200,18 @@ its placements), and `materials[]` with `shader`, `shader_class`, `class`,
 `layers[]` (`status`, `affected_roles`, `surface_type`, `colour_rgba` …).
 
 
-## Grooms: `index.jsonl`
+## Grooms, cloth and head deltas
 
-One line per groom from `sixng grooms`: strand count, points per strand,
-the bones the groom follows (lower-case joaat, named where a skeleton in
-the install names them), the root box, and `lod_group` (consecutive grooms
-sharing the stored second box: probably LODs of one groom, inferred). Each
-groom's GLB holds line segments, plus scalp triangles with `--roots`.
+- **Grooms** `index.jsonl`: one line per groom with strand count, points
+  per strand, the bones it follows (lower-case joaat, named where a
+  skeleton in the install names them), the root box and `lod_group`.
+  `catalog.json` (`--list`) adds each groom's body region (scalp, face,
+  brows / lashes, body, animal, other) and LOD chain. GLB lines carry
+  `_WIDTH` and `TEXCOORD_0` (root UV); with `--ribbons` they are meshes.
+- **Cloth** `index.jsonl`: particle and edge counts of both sets, bounds and
+  the names found in each resource (tuning profiles, bones).
+- **Head deltas** `index.jsonl`: each delta's class, LOD, matched head and
+  the two matched heads around it in name order.
 
 ---
 

@@ -20,7 +20,7 @@ Its name is not known.
 | Family | Key | Count | Inflated | Share | State |
 |---|---|---|---|---|---|
 | strand hair / fur | type 3, `7d8f3db3`, one GPU buffer (flags 0x1380) | 20,010 | 1,083 MB | 34.6 % | **decoded** ([19.2](#192-strand-hair-type-3)) |
-| verlet cloth | type 2, +0x1C = 0, no GPU buffer | 12,364 | 401 MB | 12.8 % | particles and edges **decoded** ([19.3](#193-cloth-type-2)) |
+| verlet cloth | type 2, +0x1C = 0, no GPU buffer | 12,364 (12,365 in a second count) | 401 MB | 12.8 % | particles and edges **decoded** ([19.3](#193-cloth-type-2)) |
 | soft body | type 2, `7d8f3db3` | 702 | 39 MB | 1.2 % | same layout as cloth |
 | head identity deltas | 240-byte system page, one 0x1601 buffer, base-head hash at +0x58 | 6,758 | 316 MB | 10.1 % | **decoded** ([19.4](#194-head-identity-deltas)) |
 | type 5 (collision primitives?) | type 5 | 6,388 | 6 MB | 0.2 % | partly ([19.5](#195-other-families)) |
@@ -107,10 +107,10 @@ padding.
 
 | Section | Size | Contents | Confidence |
 |---|---|---|---|
-| **B5** | S × K × 8 | **points: 4 × f16 (x, y, z, w)**, strand-major. w is non-zero at the root on 99.6 % of strands (thickness or mass) | xyz confirmed; w inferred |
+| **B5** | S × K × 8 | **points: 4 × f16 (x, y, z, w)**, strand-major. w is non-zero at the root on 99.6 % of strands; probably a **width**: about 0.57 mm along the strand, about 3 mm at the root | xyz confirmed; w inferred |
 | **B4** | T × 6 | **root triangles: 3 × u16 strand indices** (all < S) | confirmed |
 | **B0** | S × 2 | **f16 strand length** (equals the polyline length to 2 % on 98 % of resources) | confirmed |
-| A2 | S × 4 | 2 × f16, in 0..1 on 73 % (root UV?) | inferred |
+| A2 | S × 4 | 2 × f16: probably the **root UV**. Present on 250 of 250 sampled grooms, 73–100 % in 0..1, and it follows the root position (median \|r\| 0.86 for u, 0.83 for v) | inferred |
 | A0, A1, A3 | S × 4 | per-strand u32 | unknown |
 | A4, A5, A7 | S × 8 | per-strand 8 bytes | unknown |
 | A6 | S × 12 | per-strand 12 bytes | unknown |
@@ -156,7 +156,23 @@ with fewer strands. Where several resources in a row share the stored
 second box, S falls strictly from one to the next in 1,201 of 1,266
 cases, by a median factor of 0.60. Example: S = 141 → 85 → 52 → 31 at
 K = 26. Grouping consecutive resources by an equal second box gives 18,551
-groups for the 20,010 grooms, so only a minority sit in such runs.
+groups for the 20,010 grooms, so only a minority sit in such runs. A better
+rule is consecutive grooms with the **same bone set and strictly fewer
+strands** each time: 5,915 chains.
+
+**Regions (inferred, from bones and the root box):** head-only grooms whose
+roots all lie below z = 0.74 and in front (y < 0) are beards and moustaches,
+not scalp hair. By chain head: scalp 1,246, face 2,655, brows and lashes
+627, animal 1,168, body 177, other 42. In archive order, runs of face
+grooms are each followed by one scalp groom, perhaps one set per character,
+but nothing names them. Example: the scalp groom at `packs.rpf@10950d010`
+and the beard at `packs.rpf@f14aa010` sit on `head_mr1_asi_052_o_full`.
+
+**No link to peds.** The 681 hair, beard, brow and lash placeholder
+drawables (1,712-byte system page) hold only joaat of their own name at
+sys +0x6A0 plus constant hashes, and none of those hashes occur in any of
+the 47,847 unnamed system pages. There are about 6,000 chains for 681
+placeholders.
 
 ## 19.3 Cloth (type 2)
 
@@ -175,9 +191,9 @@ Hashes inside the cloth resources include `default` and `Legacy`
 | 0x1A | u8 | type = 2 | confirmed |
 | 0x1B | u8 | varies (0, 127, 231, 50 …) | unknown |
 | 0x20 | u32, u32 | `0x8000000x` flags, 0x16 | unknown |
-| 0x28 | ptr, u16 n, u16 cap | **particles: n × (f32 x, y, z, w)**. w is per-particle (e.g. 2.9–13.4), probably mass | xyz confirmed |
-| 0x38 | ptr, u16 m, u16 cap | **edges: m × {u16 a, u16 b, f32 rest length, f32, u32 flags}** | confirmed |
-| … | {u32 n, u32 cap, ptr} arrays | per-particle 22- and 40-byte records, u16 and u32 index lists, a 400-byte block. A second particle / edge pair follows at +0x2C8 / +0x2D8 | layout inferred |
+| 0x28 | ptr, u16 n, u16 cap | **particles: n × (f32 x, y, z, w)**. w is per-particle (e.g. 2.9–13.4), probably mass; a second count found values from the hundreds to 1e5, so the meaning is open | xyz confirmed; w unknown |
+| 0x38 | ptr, u16 m, u16 cap | **edges: m × {u16 a, u16 b, f32 rest length, f32, u32 flags}**. The second f32 is often constant per resource (stiffness?); flags are 0 or values such as `0xFFFE0000` | confirmed (layout) |
+| … | {u32 n, u32 cap, ptr} arrays | per-particle 22- and 40-byte records, u16 and u32 index lists, a 400-byte block. A second particle / edge pair follows at +0x2C8 / +0x2D8, on all resources: a smaller set, partly the same points as the first, whose rest lengths match less often (39–98 %) | layout inferred; second pair confirmed |
 
 **Checks over all 13,066 resources:**
 
@@ -187,6 +203,14 @@ Hashes inside the cloth resources include `default` and `Legacy`
   edges for cloth and 97 % for soft bodies. ≥ 50 % of edges match on
   91.9 % of cloth and 96.4 % of soft-body resources;
 - totals: 1.00 M particles and 4.45 M edges.
+
+**Independent check** (2026-11-22): 13,067 resources decode with 0 errors
+(12,365 cloth and 702 soft bodies, one more cloth resource than above).
+The first set holds 1,002,787 particles and 4,454,664 edges, and the rest
+lengths match on a median 84.7 % (cloth) and 96.9 % (soft body) of edges,
+as above. The second set holds 836,718 particles and 2,745,856 edges.
+Hashes in the pages resolve to `default` (all), `Legacy` (12,258) and, on
+soft bodies, ped body bones; 390 name a garment (`Gmt_*`).
 
 A soft-body cage drawn from its edges shows a ring-and-cross-brace
 lattice around the hips (stretch, shear and bend constraints).
@@ -228,7 +252,32 @@ topology. That order is not the stored order of any head drawable,
 because each head's vertex buffer is reordered on its own. Match
 vertices by (UV, position) against the base head to apply them.
 
-**Checks over all 6,758 resources:**
+It is **one fixed permutation of the base mesh per class and LOD**
+(confirmed, 2026-11-22), recovered from three reference heads: match each
+head's offsets from the base (by UV, then nearest position) to a delta, then
+give each base vertex the delta slot closest over the references. The same
+permutation reproduces **1,198 of the 1,208 head drawables** at a median of
+2.65 µm (the worst vertices, about 3 mm at the 95th percentile, are at UV
+seams). For 158 `fr1` heads the LOD2 / LOD3 drawables are not the base plus
+their LOD2 / LOD3 delta.
+
+**Pairing heads and deltas.** Many head drawables are identical meshes
+(e.g. `head_mo1_afr_002` … `_006`) with identical deltas, so heads and
+deltas must be paired in order: heads in name order take the first free
+matching delta in archive order. The LOD1–3 hashes (e.g. `8968a63b`,
+`22f92243`, `dc6d152c` for `mr1`) take the class of the LOD0 delta before
+them.
+
+**Heads with no drawable.** 434 heads have a LOD0 delta with LOD1–3
+partners but no head drawable (`mr1` 263, `fr1` 148, `mk1` 5, `mb1` 4,
+`mi1` 3, `fo1` 2, `mo1` 2, `fb1` 1). 247 more LOD0 deltas have no LOD1–3
+partner; 233 of them (`mr1` 146, `fr1` 87) sit in one run at
+`packs.rpf@430f9010`–`43e6d010`, before any other delta. The head drawables
+name only 610 `mr1` and 488 `fr1` identities against 869 and 612 delta sets,
+and `mk1` and `mi1` have no head drawables at all. The base heads have only
+a normal map in the install, no colour texture.
+
+**Checks over all 6,758 resources** (a second count finds 6,757; one has hash 0):
 
 - 100 % have the fixed system layout, a buffer of 0x20 + 8V bytes and
   zero page padding;
@@ -236,7 +285,7 @@ vertices by (UV, position) against the base head to apply them.
 - for **1,208 of 1,626 heads**, the LOD1 deltas equal (exported head −
   base head) with a median error of 2.5 µm, at the quantisation level.
   The other 418 have no exported head drawable of that class to compare
-  against.
+  against (more precisely, no head drawable at all; see above).
 
 ## 19.5 Other families
 
@@ -266,6 +315,8 @@ vertices by (UV, position) against the base head to apply them.
 - The groom ↔ placeholder drawable link (`hair*`, `beard*`, `brows*`
   3-vertex drawables). No shared joaat or 64-bit hash was found. It is
   probably resolved by file name through the encrypted TOC.
+- The meaning of cloth particle w and the second particle / edge set.
+- The colour textures of the base heads (not in the install).
 - The meaning of hair sections A0/A1/A3–A7, B1–B3, B6, B7, Q0–Q3; the
   tail weights; render-strand generation.
 - The name of `7d8f3db3`, and of the LOD1 base-head hashes.

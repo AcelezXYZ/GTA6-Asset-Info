@@ -141,7 +141,8 @@ pool-blue, white cables black, grey or blue.
 the 33,770 texture hashes that a full `levels.rpf` map export finds in no
 `data/ttdb` store. The other 3,675 are in no store or resource of the
 install, the content-pack stores included ([§5](05-ttpf.md); they serve the
-packs' own models); `1e2c9340e14a7d07` and `aa3eeff23a15dc75` are probably
+packs' own models). They make up about 139 K references in a full map
+export; `1e2c9340e14a7d07` and `aa3eeff23a15dc75` are probably
 engine defaults (inferred).
 
 ## Open questions

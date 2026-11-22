@@ -310,12 +310,16 @@ from the **record start** are:
 
 | Offset | Type | Meaning |
 |---|---|---|
+| `+0x10` | `u32` | Number of clip windows in the dictionary that reference the source, plus one |
 | `+0x24` | `u16` | Source frame count |
 | `+0x26` | `u16` | Frame stride between sequence starts in multi-sequence sources |
 | `+0x28` | `f32` | Source duration, seconds |
 | `+0x30` | ptr | Source name |
 | `+0x50` / `+0x58` | ptr / `u16` | Sequence pointer array / count |
 | `+0x60` / `+0x68` | ptr / `u16` | Track row array / count |
+
+The `+0x10` relation held for all 2,411 sources in 618 sampled
+dictionaries; 26 of those sources were used by more than 63 windows.
 
 The track stride is **12 bytes**: `{u32 target_hash, u32 property_hash,
 u32 kind}` (233 sampled tables). For skeletal tracks, the target is the
@@ -471,8 +475,11 @@ channels, 297 were on the target-0 trajectory rotation track. In each,
 the heading jumped to identity exactly on a frame where a catalogued
 clip window starts or ends. Sample the clip window rather than the whole
 source. The other six steps were on skeletal rotation tracks, and their
-cause is open, as are other within-sequence discontinuities. Type 9
-remains undecoded.
+cause is open, as are other within-sequence discontinuities.
+
+Types 6 and 9 remain undecoded, but neither occurred in the 212,302
+unique sequences reached from 294,810 validated clips in 52,923
+dictionaries. Type 3 occurred in only 30 of those sequences.
 
 ### Pose root and trajectory
 

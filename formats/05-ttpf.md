@@ -55,9 +55,9 @@ looks like a scrambled swizzle.
 | 0x20 | 908,643 | any | zlib |
 | 0x04 | 100,026 | BC1 | BCPack (decodes, [§6](06-bcpack.md#60-status)) |
 | 0x0C | 35 | BC3 | BCPack (decodes, fitted tables, [§6](06-bcpack.md#62-bc3-blocks-codec-0x0c)) |
-| 0x10 | 77 | BC4 | BCPack |
-| 0x14 | 325 | BC5 | BCPack |
-| 0x18 | 268 | BC6H | BCPack |
+| 0x10 | 77 | BC4 | BCPack (decodes, fitted tables, [§6](06-bcpack.md#64-bc4-and-bc5-blocks-codecs-0x10-0x14)) |
+| 0x14 | 325 | BC5 | BCPack (decodes, fitted tables, [§6](06-bcpack.md#64-bc4-and-bc5-blocks-codecs-0x10-0x14)) |
+| 0x18 | 268 | BC6H | BCPack (decodes, fitted tables, [§6](06-bcpack.md#65-bc6h-blocks-codec-0x18)) |
 | 0x1C | 5,120 | BC7 | BCPack (decodes, fitted tables, [§6](06-bcpack.md#63-bc7-blocks-codec-0x1c)) |
 | 0x00 | 5 | any | stored (read as is) |
 

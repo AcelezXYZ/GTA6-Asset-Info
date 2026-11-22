@@ -37,7 +37,7 @@ differ.
 |------|-----------|---------|
 | RPF9 archives | header layout; payload is plain zlib | the table of contents is encrypted, so there are no file names or paths |
 | Resources | system/graphics pages, pointers, names inside resources | some unnamed resources |
-| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts (BC and all uncompressed formats); BCPack lane decoding; BC1, BC3 and BC7 decode (99.9 % of 357 K store textures readable at full size; BC3 and BC7 with fitted tables); embedded tint palettes | **BCPack** BC4, BC5, BC6H; byte-exact reconstruction (fitted BC3/BC7 tables); where the real mip count is stored |
+| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts (BC and all uncompressed formats); BCPack lane decoding; all six codecs decode (every one of the 357 K store textures readable at full size; BC3–BC7 with fitted tables); embedded tint palettes | **BCPack** byte-exact reconstruction (fitted BC3–BC7 tables); where the real mip count is stored |
 | Models | vertex streams, meshlet index buffers, LODs, skeletons, skinning (incl. u16 bone indices; ped clothing with 8 influences through a bone palette to the shared ped skeleton), shaders' texture references; shader names (all) and most parameter names | texture names (64-bit hash), constant buffers |
 | Vehicles | parts, damage and mod-kit parts, wheel mounts; model info, spawn configurations (body colour, rim, tyre), weighted paint-colour lists, handling records | how the wheel scale sizes the shared wheels, secondary colours, liveries, many handling fields |
 | Peds | clothing skinning (8 influences, bone palette, shared 596-bone skeleton); head faces through material presets (893 of 1,657 heads); body-shape presets, the control → rig-input map and the pose-rig format, which runs; strand hair and fur (20,010 grooms, [§19](formats/19-ped-physics-resources.md)), cloth particles and edges, head identity deltas | head skinning, faces of the other heads, which groom belongs to which ped, two rig ops, lower-LOD rigs, rig input names |
@@ -56,10 +56,9 @@ differ.
 ## Biggest open problems
 
 - **BCPack**, the Xbox Series hardware texture codec. The entropy stream
-  decodes on tested chunks for all six observed codecs. BC1, BC3 and BC7
-  decode (BC3 and BC7 with fitted history tables); BC4, BC5 and BC6H have
-  candidate rebuilders only. Byte-exact reconstruction is not established
-  for any codec.
+  decodes for all six codecs, and all six decode to BC blocks (BC3, BC4,
+  BC5, BC6H and BC7 with fitted history tables, so some blocks speckle).
+  Byte-exact reconstruction is not established for any codec.
   [Status and how to resume](formats/06-bcpack.md#60-status).
 - **Collision surface names**: the surface id hash is unknown. (Shader and
   parameter names are solved: joaat of the lower-case name.)

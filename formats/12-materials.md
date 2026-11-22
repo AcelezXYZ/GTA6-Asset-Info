@@ -126,12 +126,16 @@ Tinted parts have bright, near-grey base textures (mean saturation 0.05),
 so the tint multiplies the base colour (inferred): white pool tiles come out
 pool-blue, white cables black, grey or blue.
 
-- Widths seen: 13, 20, 37, 66, 69, 129, 131, 256, 260, 513, 517, 1,024 and
-  2,051 entries.
-- Wider palettes repeat in rows: later rows start with white, at 256 / 512 /
-  768 on 1,024-wide palettes and at 32 / 64 / 96 on a 131-wide one.
-  The row is probably chosen by the entity's `tintValue` (`3c852527`,
-  [§9](09-placements.md)); unverified. Row 0 is the default.
+- **Layout** (confirmed): a palette is 2^n + k texels wide. Each row holds
+  256 >> k entries (at most 2^n), and there are 2^n / row length rows; rows
+  are colour variants. Widths seen: 13, 20, 37, 66, 69, 129, 131, 256, 260,
+  513, 517, 1,024 and 2,051. For example 1,024 = 2^10 + 0 gives 4 rows of
+  256 (rows start at 256 / 512 / 768), and 131 = 2^7 + 3 gives 4 rows of
+  32. Later rows start with white.
+- **The entity's `tintValue`** (`3c852527`, [§9](09-placements.md)) selects
+  the row (confirmed: for every palette width, the largest `tintValue`
+  placed with it is rows − 1). Row 0 is the default.
+- Colour = palette[row × row length + `COLOR0.b`].
 
 **Texture hashes in no store.** Embedded tint palettes account for 30,095 of
 the 33,770 texture hashes that a full `levels.rpf` map export finds in no

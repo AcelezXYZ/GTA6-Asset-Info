@@ -61,7 +61,7 @@ mask pack slot hashes) and short CSP / BeamNG hints.
 
 **GLB contents:** nodes `root > modelN > geomNN_<off>`; attributes
 `POSITION`, `NORMAL`, `TANGENT` (where the game has one), `TEXCOORD_0..3`,
-`_COLOR0` (raw RGBA8), `COLOR_0` on models with a tint palette (the palette entry that `_COLOR0` blue selects, row 0, linear RGB; glTF viewers multiply it into the base colour; added 2026-11-21), and for fragments `JOINTS_0` (u8, or u16 above 255
+`_COLOR0` (raw RGBA8), `COLOR_0` on models with a tint palette (the palette entry that `_COLOR0` blue selects, row 0, linear RGB; other rows per placement `tint_row`, with the palette's `tint_rows` and `tint_row_length` in `model.json`; glTF viewers multiply it into the base colour; added 2026-11-21), and for fragments `JOINTS_0` (u8, or u16 above 255
 bones) / `WEIGHTS_0` with a glTF skin over the skeleton joints. One
 double-sided material per shader, alpha mode from the class. Car paint gets
 a grey `baseColorFactor`, metallic 0.6, roughness 0.25 and no albedo.
@@ -84,6 +84,7 @@ interior: bbox, rooms, entity sets with counts) and `entities[]`:
 | `scale_xy`, `scale_z` | scale |
 | `flags`, `guid`, `hash64` | raw |
 | `lod` | `{level: HD/LOD/SLOD1–4/ORPHAN_HD, parent_index, parent_link, num_children, lod_dist, child_lod_dist, priority}`. After `sixng lod-links` also `archetype_lod_dist`, `hd_texture_dist`, `effective_lod_dist` (own `lod_dist` if > 0, else the archetype's) and `parent` `{kind: entity \| batch, map, parent_index` or `batch` + `instance`, `archetype, name, model_id, distance, method, confidence, alternatives}`; `method` is `parent_hash`, `region`, `spatial`, `batch_position` or `batch_index_name`, `confidence` high / medium / low (added 2026-11-21) |
+| `tint_row` | the tint palette row the entity's `tintValue` selects (added 2026-11-21); omitted when 0 |
 | `interior` | on entities of interior files: `{interior, room, room_name, entity_set, entity_set_name}` (added 2026-11-21) |
 | `render`, `render_reason` | present only when the placement should not be drawn by default: `render: false` and a reason — `placeholder` (no model resolved), `vfx_proxy` (effect markers, e.g. `*vfx*proxy*`, `vfx_dummy*`), `interior_proxy` (interior-shell stand-ins `*_pxy`, `*shell_proxy`, `int_*_proxy`, which duplicate the interior shells), `shadow_proxy` (`*_shadow` shadow casters) or `light_proxy` (`*_lit_proxy`, zero-size geometry). Rules come from exporting examples; `gmt_*_proxy_*` shop items and `*_occl_*` cables are real geometry and are not flagged. Confidence: medium (name rules, checked on the examples). Added 2026-11-20 |
 | `fields` | every other scalar field, by hash |

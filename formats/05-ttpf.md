@@ -88,13 +88,14 @@ textures (confirmed):
 |---|---|---|---|
 | tile mode 1 or 2, field 0 (mostly 1024 × 1024 terrain normal maps) | 41.5 K | 1 mip | 3 mips |
 | tile mode 1 UI sprites, field 1 | about 2.7 K | 2 mips | 1 mip |
+| uncompressed formats, tile modes 1–3, field 1 | | 2 mips | mip 0 only |
 | others | a few hundred | | off by 1–2 |
 
 Mips are stored smallest first with mip 0 last, so a wrong count puts mip 0
 at the wrong offset: a scrambled band of the smaller mips across the top of
 1024 × 1024 terrain textures, or noise on small UI sprites.
 
-Rule (single-slice 2D textures): each texture's mip chain runs right up to
+Rule (2D textures and arrays): each texture's mip chain runs right up to
 the next texture's virtual offset. Where the size given by the field does
 not reach it and exactly one mip count does, use that count. Checked as
 mip 1 = mip 0 downsampled: median 28–46 dB with the corrected count against
@@ -105,8 +106,8 @@ true count is stored is unknown; it does not map to a single bit field.
 
 | Tile mode | Gfx10 mode | Block | Element bit order in a block (low → high) |
 |---|---|---|---|
-| 0 | `SW_64KB_D` | 64 KiB | 16-byte: `x0 y0 x1 y1 y2 x2 y3 x3 y4 x4 y5 x5` · 8-byte: `x0 y0 x1 x2 y1 y2 x3 y3 x4 y4 x5 y5 x6` · 1-byte: `x0 x1 x2 y1 y0 y2 x3 y3 y4 x4 y5 x5 y6 x6 y7 x7` (y1 before y0) |
-| 1, 2, 3 | `SW_4KB_S` | 4 KiB | 16-byte: `y0 y1 x0 x1 y2 x2 y3 x3` · 8-byte: `x0 y0 y1 x1 x2 y2 x3 y3 x4` · 1-byte: `x0 x1 x2 x3 y0 y1 y2 y3 y4 x4 y5 x5` |
+| 0 | `SW_64KB_D` | 64 KiB | 16-byte: `x0 y0 x1 y1 y2 x2 y3 x3 y4 x4 y5 x5` · 8-byte: `x0 y0 x1 x2 y1 y2 x3 y3 x4 y4 x5 y5 x6` · 4-byte: `x0 x1 y0 y1 x2 y2 y3 x3 y4 x4 y5 x5 y6 x6` · 2-byte: `x0 x1 x2 y0 y1 y2 x3 y3 x4 y4 x5 y5 x6 y6 x7` · 1-byte: `x0 x1 x2 y1 y0 y2 x3 y3 y4 x4 y5 x5 y6 x6 y7 x7` (y1 before y0) |
+| 1, 2, 3 | `SW_4KB_S` | 4 KiB | 16-byte: `y0 y1 x0 x1 y2 x2 y3 x3` · 8-byte: `x0 y0 y1 x1 x2 y2 x3 y3 x4` · 4-byte: `x0 x1 y0 y1 y2 x2 y3 x3 y4 x4` · 2-byte: `x0 x1 x2 y0 y1 y2 x3 y3 x4 y4 x5` · 1-byte: `x0 x1 x2 x3 y0 y1 y2 y3 y4 x4 y5 x5` |
 | 9, 10, 11, 12 | `SW_4KB_S`, cube maps only: tile mode − 8 = number of stored copies (below) | 4 KiB | as modes 1–3 |
 
 - Blocks are row-major; no pipe/bank XOR.
@@ -123,8 +124,14 @@ true count is stored is unknown; it does not map to a single bit field.
   `off = m > 6 ? 16 << m : m << 8`. Origin x = bits 9, 11, 13… of `off`
   × 8 (8-byte elements), × 4 (16-byte) or × 16 (1-byte); y = bits 8, 10,
   12… × 4, or × 16 for 1-byte elements. The unit is one 256-byte block:
-  8 × 4, 4 × 4 or 16 × 16 elements. Apply the block equation to
-  (origin + x, y).
+  8 × 4 (8-byte), 4 × 4 (16-byte), 8 × 8 (4-byte), 16 × 8 (2-byte) or
+  16 × 16 (1-byte) elements. Apply the block equation to (origin + x, y).
+- **Uncompressed formats** (4-byte RGBA8 / BGRA8, 2-byte R16_FLOAT / RG8,
+  8-byte R16G16B16A16 UNORM / FLOAT) decode with these orders in every tile
+  mode (confirmed, 2026-11-21; 2,730 textures newly decodable). No
+  (format, tile mode) pair in the stores is left undecodable. The 2-byte
+  `SW_64KB_D` order is x-first by the block shape; square samples cannot
+  tell it from its transpose (inferred).
 - **1-byte formats** (A8 = DXGI 65, R8) decode with these orders in every
   tile mode (confirmed, 2026-11-21): 126 textures (119 A8 decal and mask
   textures, 7 R8); mip 1 matches mip 0 downsampled at a median of 63 dB.
@@ -196,7 +203,7 @@ fall from 29,310 to 1,309 textures and low-mip exports from 14,443 to
 | chain touches BCPack, mip 0 still in zlib | 6,966 (2.0 %) |
 | mip 0 in BCPack, a lower mip in zlib (exported at that mip) | 14,441 (4.1 %) |
 | every mip in BCPack | 29,310 (8.3 %) |
-| unsupported 4-/2-/1-byte formats or special tile modes 9–12 (1-byte formats decode since) | 3,412 (1.0 %) |
+| unsupported 4-/2-/1-byte formats or special tile modes 9–12 (all decode since) | 3,412 (1.0 %) |
 
 The coverage table predates the array and cube-map layouts. With them, 563 of
 the 567 cube maps and 118 of the 130 arrays decode (the rest have 4-/2-byte
@@ -217,9 +224,6 @@ worst: its layer normals and its RGB layer-blend mask are often flat.
 ## Open questions
 
 - Where the descriptor stores the real mip count ([Real mip count](#real-mip-count)).
-- 4-byte (RGBA8/BGRA8) and 2-byte (R16) layouts: no equation found, and
-  even row-major reads are scrambled, so the data location may also be
-  wrong (another header?).
 - Format 157 (one vehicle texture slot) is unknown.
 - Three cube maps declare more copies (tile mode − 8) than their mip chain
   has units (256×256 with "3" or "4" mips, 128×128 with "3"); how they are

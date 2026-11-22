@@ -222,7 +222,7 @@ Example: `cs_jada_watts_head_fr1_afr_000_y_full` (`eb9b7bee`) → albedo
 | all head drawables | 1,657 |
 | with a face through a preset (897 drawables tagged) | 893 |
 | crowd heads `hc_*`: tagged, but by presets with empty texture slots | — |
-| `a_head_base_*` and some `cs_*` heads (e.g. `cs_lucia`): not tagged in `packs.rpf` (perhaps in `story000.rpf`, not checked) | — |
+| `a_head_base_*` and some `cs_*` heads (e.g. `cs_lucia`): not tagged in `packs.rpf`, and no link was found anywhere else in the install (the 188,449 meta resources of `levels.rpf` hold no presets) | — |
 
 About 1,000 face albedos are ordinary textures in the `ttdb_peds_*_3`
 stores. `peds_loose.ttpf` holds clothing patterns, head-space masks (beard,

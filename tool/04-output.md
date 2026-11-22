@@ -18,7 +18,7 @@
     model.json                        description
     buffers/NN_<gfxoff>.bin           raw GPU buffers
     sys.bin                           decompressed system page
-    textures/                         embedded textures
+    textures/                         embedded textures, incl. tint palettes (<hash>.png)
   raw/<archive>/<name>_<off>.<ext>    anything else (xml, pso, rbf, bin …)
   placements/<archive>/
     <off>.json                        one map file

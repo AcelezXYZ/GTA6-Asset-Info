@@ -61,6 +61,7 @@ water, terrain_multilayer.
 | `c6f46e79` | `speculartex` | packed: **R** binary mask (metalness?), **G** roughness or gloss, **B** AO / cavity, A unused | inferred |
 | `739e3d0d` | `speculartex2` | packed data. On wet-capable surfaces: R region mask, G nearly flat (puddle blobs), B detailed, A AO-like. **Most maps are R = G = 0, B ≈ 0.5**, so B is not roughness: read that way, surfaces turn mirror-like. Treat the channel meaning as unknown | inferred |
 | `19df25d7` | ? | format 157 (unknown), vehicle shader | unknown |
+| `2c8d7182` | `tintpalettetex` | tint palette **embedded in the model**, on almost every map model: one row of RGBA8 sRGB colours (13 to 2,051, stored linear, padded with `ffbbff`). The texture struct's +0x30 pointer leads to a record whose +8 is the 64-bit store key, so these hashes are not in any `ttpf` store | confirmed |
 
 **Placeholder textures** (confirmed). Many building materials point their
 packed-data slot (`739e3d0d`) at a 4 × 4 all-zero texture, and some point
@@ -115,6 +116,12 @@ Tags in `12f85293` are joaat of the lower-case tag name: `002f77d9` =
 the preset applies to** (joaat of the full drawable name); this is how a
 head gets its face ([§7.5](07-models.md#ped-heads-face-textures-confirmed)).
 Set and preset names do not resolve.
+
+**Texture hashes in no store.** Embedded tint palettes account for 30,095 of
+the 33,770 texture hashes that a full map export finds in no `ttpf` store.
+The other 3,675 are in no store or resource of the install, including the
+12 `pack/*/data/ttdb` stores (about 1.2 GB); `1e2c9340e14a7d07` and
+`aa3eeff23a15dc75` are probably engine defaults (inferred).
 
 ## Open questions
 

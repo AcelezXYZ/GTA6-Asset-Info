@@ -53,7 +53,21 @@ inference, and the data and two-channel meanings are unknown.
 Each `textures[]` entry has `param`, `param_hash`, `hash64`, `hash32`,
 format, size, tile mode, `role_guess`, `slot_role`, the PNG path or the
 reason it is missing, `mip_used` when exported at a lower mip, and
-`texture_fallback {reason, role, rgba, source}` when no mip decodes.
+`texture_fallback {reason, role, rgba, source}` when no mip decodes or,
+since 2026-11-21, when the hash is in no store or resource of the install
+(reason "not in the install"). The fallback value depends on the slot:
+
+| Slot | Fallback |
+|---|---|
+| engine-default hashes (`5d7a3a87cc19967d`, the vehicle paint slot; `1e2c9340e14a7d07`, assumed) | white |
+| base colour on a model with a tint palette | white, so the tint shows |
+| other colour slots | the average of the model's decoded colour textures |
+| normal maps | flat normal |
+| known data slots | their typical value (the median of the decoded textures in that slot) |
+| other data slots | mid grey |
+
+A **decal** whose base colour is missing gets alpha 0, so it is hidden
+instead of drawing as a white strip.
 
 The `paint` block: `colour` (null: runtime colour, not decoded),
 `suggested_default_linear_rgb`, `masks` (decal, dirt, grime, scratches,

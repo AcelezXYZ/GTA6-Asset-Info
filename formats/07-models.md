@@ -173,6 +173,9 @@ should be re-exported.**
 Bone, joint and attach-point names (`suspension_lf`,
 `bonnet_catch_l_pos1_attach` …) are plain strings in the system page.
 
+The separate [fragment physics tables](13-collision.md#134-fragment-physics)
+link groups of collision shapes to skeleton bones on the two ambient rigs.
+
 ### Ped skinning: bone palette (confirmed)
 
 Ped clothing has **8 influences per vertex**: slots 8 / 6 hold the first

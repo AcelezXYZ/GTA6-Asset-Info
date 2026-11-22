@@ -15,15 +15,17 @@ About 87 K of ~98 K unnamed resources in `levels.rpf` are physics bounds
 | +0x40 / +0x50 | bbox centre / centre of gravity |
 
 **Composite (6):** +0x70 child pointer array, +0x78 and +0x80 child
-transforms (4 × 4 f32, w row stored 0), +0x88 child flags (16 B each),
-+0x98 u16 child count (twice). Samples have 1–5 children with identity
-transforms.
+transforms (0x40 bytes each), +0x88 child flags (16 B each),
++0x98 and +0x9A hold the same u16 child count. In 293 sampled composites,
+counts span 1–13, both transform pointers alias, and all 509 child transforms
+are identity. The u16 at +0x9C is 5 even when the count exceeds 5; do not use
+it as a count or a limit.
 
 **Geometry (5):** +0x88 polygons, +0x90 vec3 quantum, +0xA0 vec3 centre,
 +0xB0 vertices (s16 × 3; **position = s16 × quantum + centre**), +0xD0 u32
 vertex count, +0xD4 u32 polygon count, +0xF0 materials (8 B each), +0x118
-per-polygon material index (u8), +0x120 u8 material count, +0x130 / +0x138
-further tables (BVH nodes; not needed for the mesh).
+per-polygon material index (u8), +0x120 u8 material count, +0x130 BVH
+summary pointer. The target of +0x138 is still unidentified.
 
 **Polygons** (16 B, type in byte 3):
 
@@ -38,18 +40,44 @@ further tables (BVH nodes; not needed for the mesh).
 **Material record** (8 B): **u16 surface id** at +0 (always < 0x8000), flag
 bytes after it (unknown).
 
-**Triangle BVH nodes (confirmed on sampled geometry bounds).** A node is
-16 bytes: three i16 minima, three i16 maxima, then two u16 values. The
-word at `+0x0C` equals the node count at the root. The word at
-`+0x0E` counts consecutive triangles owned by that node.
+### CPU collision BVH
 
-For each axis of a node box, use
-`bound_min + ((q + 32768) / 65535) * (bound_max - bound_min)`, where
-`q` is the stored signed word and the bounds are those of the owning
-geometry child. This formula applies to node boxes. Vertices use the
-stored quantum and centre described above. Validation checks the
-running sum of node triangle counts against the polygon count and
-checks each owned triangle against its node box.
+The geometry's `+0x130` points to a summary. Its `+0x50` points to
+16-byte nodes and `+0x58` is the u32 node count. The following u32 can be
+larger; do not walk it as a count. Each node holds `i16 min[3]`,
+`i16 max[3]`, and two u16 words:
+
+| `+0x0E` | `+0x0C` |
+|---|---|
+| Nonzero: polygon count | Index of the first polygon in this leaf |
+| Zero: internal node | Subtree span in nodes, including this node |
+
+The nodes are in preorder. At an internal node `i`, its left child is
+`i + 1` and its right child is immediately after the left subtree (a leaf
+spans one node). Skip the whole subtree with `i + span`. A one-node tree
+is a leaf. Polygon ranges are in leaf order and partition the geometry's
+polygon table; they are not restricted to triangles.
+
+Decode node-box coordinates with `bound_min + ((q + 32768) / 65535) *
+(bound_max - bound_min)` per axis of the owning geometry child. Vertices
+use their own stored quantum and centre. The summary also stores copies
+of the child's min/max at `+0x00`/`+0x10`, a centre at `+0x20`, and
+reciprocal scale vectors at `+0x30`/`+0x40`.
+
+Across 32 evenly spaced 8 MiB windows in `levels.rpf` (Xbox 1.0.2.1),
+509 geometry bounds passed the subtree, AABB union and polygon-range
+checks: 1,353,503 nodes and 1,998,333 polygons. The reconstructed shapes
+(1,982,262 triangles, 8,039 capsules, 7,575 boxes and 457 cylinders)
+all fit their owning leaf boxes within 2 cm. This is unrelated to
+[GPU BVH4](17-other.md#gpu-bvh4).
+
+**Raw vertex tails.** In nine sampled single-child resources, inflating
+only the zlib stream leaves the vertex pointer at the end of the inflated
+block. Read `6 * vertex_count` raw bytes starting at the next 16-byte
+boundary at or after the compressed stream's end. For example, at
+`levels.rpf@0x9b25a9010` the stream inflates to `0x20000` bytes and the
+2,374 raw vertices begin at archive offset `0x9b25bb060`. All nine passed
+the same leaf geometry checks after appending the raw bytes.
 
 ## 13.2 Surface ids (unresolved)
 
@@ -82,10 +110,123 @@ surface (one id covers ~39 % of all area). **98.3 % of collision area is
 categorised (22.7 % high, 68.1 % medium, 7.4 % low confidence), 243 ids**.
 These are categories, not material names.
 
+## 13.4 Fragment physics
+
+In sampled `.#ft` fragments, the resource root points to two arrays
+separate from the [drawable and skeleton](07-models.md#75-skeleton-fragments-confirmed).
+All offsets below are relative to the named record; integers are little-endian.
+
+| Root offset | Field |
+|---|---|
+| `+0x20` / `+0x34` | Physics-group pointer / u16 group count (stride `0x70`) |
+| `+0x28` / `+0x36` | Collider pointer / u16 collider count (stride `0x50`) |
+
+A group stores u16 first-child, parent and direct-child count at `+0x14`,
+`+0x16` and `+0x18`; `0xFFFF` denotes a missing index. The u16 values at
+`+0x1A` and `+0x1C` are the start and exclusive end of its collider range.
+The end is repeated at `+0x1E`.
+
+| Collider offset | Field |
+|---|---|
+| `+0x00` | Unit quaternion (four f32s) |
+| `+0x10` | Bone-local collider translation (three f32s, on the tested rigs) |
+| `+0x20` | Three f32 inertia components, then f32 mass at `+0x2C` |
+| `+0x30` | Pointer to a bounds record (type at `+0x10`, max/min at `+0x20`/`+0x30`) |
+| `+0x48` / `+0x4A` | u16 owning group index / u16 collider index |
+
+Each inertia component equals mass times the corresponding unit-mass
+component stored at bound `+0x60`. On all sampled type-3 bounds, these
+three stored components and the f32 at bound `+0x6C` match the analytic
+inertia per unit mass and volume of a box with the stored dimensions.
+Group links, collider ranges and the mass/inertia identity held for
+934 groups and 2,329 colliders in 228 sampled fragments. Another 25
+candidates did not match this count layout and were excluded.
+
+**Skeleton link (two ambient human rigs).** Each group stores two u32 bone
+hashes at `+0x08`/`+0x0C` and matching u16 skeleton indices at `+0x10`/`+0x12`.
+The two slots reference `SKEL_*` and `BM_*` bones, respectively; the second
+can be `(0, 0xFFFF)`. In `packs.rpf@0x454db010` (`ambient_malebody`) and
+`packs.rpf@0x45404010` (`ambient_femalebody`), all 80 nonempty links across
+42 groups match the u32 hashes in the indexed skeleton rows. Each rig has
+28 colliders. In the male rig, group 0 at body `0x24008` links `SKEL_Pelvis`
+(index 1) and `BM_pelvis` (index 77) to collider 0 at `0x24950`, whose bound
+is at `0x26c50`.
+
+### Collider bind transforms
+
+On the sampled rigs, follow the fragment's root `+0x10` pointer and then
+`+0x20` of that record to a type-6 composite. Its child pointers match the
+bounds pointers in the collider table in the same order. Its transform
+arrays at `+0x78` and `+0x80` agree in their XYZ lanes.
+
+Use the **first** bone index of the owning group. Chain the bone's local
+transforms through the skeleton to get its model-space rotation `R_b` and
+position `t_b`. With collider rotation `R_c` and translation `t_c`, the
+model-space placement is `R_b * (R_c * p + t_c) + t_b` for a point `p` in
+the collider. In the stored 0x40-byte matrix, the XYZ lanes of the first
+three rows are the transformed basis vectors and the fourth row is the
+translation. Do not use the fourth lane of each row for this comparison.
+
+This reproduces 472 of 472 child transforms in the 24 fragments with
+`limits` blocks: translation error is below 0.003 mm and every rotation
+entry differs by less than `3e-6`. Using the second bone when present,
+with the same `4e-6` tolerance, matches only 359; reversing the composition
+matches none. In `packs.rpf@0x454db010`, the composite is at `0x262b0` and
+the first matrix is at `0x25210`. This validates bind-pose placement, not
+how the runtime updates the body.
+
+### Physics-group pairs
+
+A non-null fragment root `+0x58` can point to two u32 count words (equal
+in all sampled tables) followed by an array pointer at `+0x08`. Each array
+entry is a pair of u16 physics-group indices, not bone or collider indices.
+Across 19 nonempty tables (1,535 pairs), no pair repeats, joins a group to
+itself, or joins a direct parent to its child. Resolve indices to each
+group's first bone hash: both full ambient human rigs have the same 127
+pairs, and every sampled nonempty variant table matches that list filtered
+to its remaining groups. For the male rig the header is at `0x28400` and
+the array at `0x25ca0`. The data does not establish how the runtime uses
+these pairs.
+
+### Joint limits
+
+The fragment's `+0x18` points to its main drawable. At drawable `+0x90`,
+a pointer can lead to a block with the inline string `limits` at `+0x58`.
+Check the tag rather than assuming every non-null pointer is a limits
+block. The block stores two u32 count words at `+0x18`/`+0x1C` (equal in
+all samples) and an array pointer at `+0x20`.
+
+| Limit row offset (stride `0x90`) | Stored value |
+|---|---|
+| `+0x00` | Unit quaternion (`f32[4]`); exact reference frame unknown |
+| `+0x10` / `+0x14` | Ordered f32 angular endpoints, in radians |
+| `+0x20`, `+0x2C`, `+0x38`, `+0x44` | Four optional f32 angular values, consistent with swing limits; the axis and evaluation rule are not verified |
+| `+0x78` / `+0x7C` | Two u32 mode words; do not assume a single encoding |
+| `+0x80` | u32 bone hash; join to the group's first hash at `+0x08` |
+
+Across 24 sampled fragments with the named block (330 rows, including
+human rigs and two fish), each non-root physics group has one row and
+no root group has one. All quaternions are unit length within `1e-5`, and
+all ordered endpoints are in `[-pi, pi]` within float precision. The
+56 rows with mode words `(0, 0x200)` have no additional angles; the 262
+rows with `(4, 4)` all have four nonzero values. Other observed pairs include
+`(4, 2)` and `(4, 0x104)`. The latter has unequal first and third angles
+in the alien rig's right-hand row, so do not assume mirrored values.
+
+For example, `ambient_malebody` has its limits block at body `0x270d0`
+and its `SKEL_L_Calf` row at `0x1eea0`: the endpoints are about
+`-140°` and `+10°`. The corresponding `ambient_femalebody` row
+(body `0x1e5e0`) has `-140°` and `+6°`. The knee and forearm rows in both
+rigs have mode words `(0, 0x200)`, identity quaternions and no additional
+angles. This supports a hinge-like form but does not identify the hinge
+axis or the runtime limit solver.
+
 ## Open questions
 
 - The surface hash function and the full material list.
-- Material record flag bytes and the remaining BVH summary fields.
+- Material record flag bytes and the geometry `+0x138` target.
+- Joint-limit reference frames, swing evaluation and runtime constraint composition.
+- The runtime use of the physics-group pairs.
 - A railway-only surface (none found).
 
 

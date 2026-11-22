@@ -43,7 +43,8 @@ Used by `extract` and `extract-category`.
 | `--force` | redo items that already have outputs |
 | `--no-embedded-textures` | skip textures embedded in models |
 | `--dry-run` | print the selection count and decompressed size; write nothing |
-| `--body-shape "<control>=<v>,…"` | ped clothing: pose the shared ped skeleton with the game's body-shape rig, e.g. `gcweightbelly=0.5,gcmusclechest=1`. Controls: `gcweight<region>` −1..1, `gcmuscle<region>` 0..1 (back, belly, butt, calf, chest, forearm, hip, muffin, neck, shoulder, thigh, upperarm), `gcbutt` 0..1, `gcbreasts` −1..1; `allweight=v` / `allmuscle=v` set a whole group. The shape goes into the joint node transforms (inverse bind matrices stay neutral). Needs `packs` and `anim` indexed |
+| `--body-shape "<control>=<v>,…"` | ped clothing: pose the shared ped skeleton with the game's body-shape rig, e.g. `gcweightbelly=0.5,gcmusclechest=1`. Controls: `gcweight<region>` −1..1, `gcmuscle<region>` 0..1 (back, belly, butt, calf, chest, forearm, hip, muffin, neck, shoulder, thigh, upperarm), `gcbutt` 0..1, `gcbreasts` −1..1; `allweight=v` / `allmuscle=v` set a whole group. The shape goes into the joint node transforms (inverse bind matrices stay neutral). Needs `packs` and `anim` indexed; re-index `anim` with SixNG 2026-11-21 or later (its index format changed) |
+| `--head-skin N` | ped heads: which face to use (they bind no textures). Heads a material preset names use that face; others get a face of the same sex, body type and ethnicity code (`fr1_lat` in `head_fr1_lat_018_m_full`) from the linked heads, preferring the same age letter |
 
 **Resumable runs.** Each item writes a marker when it finishes, and items
 with outputs are skipped. To continue a stopped run, run the same command

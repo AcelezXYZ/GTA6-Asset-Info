@@ -99,6 +99,23 @@ their names (`standard_uber_4lyr_spx_dm_hbb`, `standard_uber_4lyr_pxm_hbb_fixuv1
 **Normal maps are DirectX convention (green = +Y down)** (confirmed by an
 integrability test on 270 of 300 maps). Invert G for glTF/OpenGL.
 
+## Material presets (peds)
+
+About 1,500 of the 4,678 meta resources in `packs.rpf` hold material
+presets and sets (confirmed layout; field names are hashes):
+
+| Struct | Fields |
+|---|---|
+| `f795e8ba` preset | name, parent, Category, a list of `37e52277` parameters, and two maps ([§8](08-meta.md), type 0x71): `12f85293` tags (key → u32 list) and `9a289423` |
+| `37e52277` parameter | `3eaddcd7` parameter hash (`44e21c90` = joaat("base")), a colour, `147fdab5` = four u64 texture hashes (`ttpf` keys, [§5](05-ttpf.md)) |
+| `a9d57751` material set | name, a list of (slot, preset) pairs; face sets hold four skin variants in the "base" slot |
+
+Tags in `12f85293` are joaat of the lower-case tag name: `002f77d9` =
+"pedappearance", `a9473ab4` = "style". Key **`4bfd27dd` lists the drawables
+the preset applies to** (joaat of the full drawable name); this is how a
+head gets its face ([§7.5](07-models.md#ped-heads-face-textures-confirmed)).
+Set and preset names do not resolve.
+
 ## Open questions
 
 - 152 of 229 parameter names; the collision surface hash

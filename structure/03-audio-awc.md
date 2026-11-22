@@ -81,7 +81,9 @@ the u8 at `0x1C` and the channel count the u8 at `0x1D` (1 mono, 2 stereo).
 Over 1,606,240 streams: Opus is about 99.3 % of payload bytes, XMA2 0.45 %,
 float32 PCM 0.26 %, PCM16 0.001 %. One container can hold streams of more than
 one codec: per-codec container counts sum to 7,162 over 7,159 containers
-(confirmed).
+(confirmed). By stream: 1,818 XMA2 (mono, 32 kHz), 227 float32 PCM and 19
+PCM16 streams; the rest are Opus. Reading the codec from byte `0x13`
+instead mislabels 514 of these non-Opus streams as Opus.
 
 ## Music stream-format chunk (`0x48`)
 

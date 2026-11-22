@@ -46,11 +46,11 @@ differ.
 | Navmesh | tiles, polygons, road flag | most other flags |
 | Lights | position, colour, type, intensity, range, cones, hour mask | a few fields |
 | Road graph | nodes, links, lanes, speed limits, 34 of 51 node flags, junctions, traffic-light phases | some link flags, street names |
-| Video | 515 Bink 2 files, stored uncompressed and carved by header | frame decoding (needs a Bink 2 decoder), original names |
+| Video | Bink 2 containers, frame index and standalone Bink Audio 2 DCT tracks | independent video bitstream decoding, remaining file names |
 | UI graphics | 75 named dictionaries (loading screens, HUD, gauges); the UI texture store (10,013 sprite atlases, 90 % complete) | BCPack parts, menu layouts, a minimap tile set (none found) |
 | Audio | `ADAT` container, chunk tags, Opus framing, codec ids (PCM16, float32 PCM, XMA2, Opus) | a few header fields |
-| PSO data | big-endian section headers, little-endian block table, the `LSCH` schema (joaat field names); 2,225 of 2,281 files in `data.rpf` decode; one serialised object graph (30,683 records) | 56 files in the older layout, enums, most struct names |
-| Shaders | shader cache layout, shader names | decoding |
+| PSO data | big-endian section headers, v22 and unversioned script block tables, `LSCH` schema, `LSNS` framing and one serialised object graph | older PSO layout, `LSNS` record meanings, enums, most struct names |
+| Shaders | cache layout, shader names, DXBC-wrapped native spans and instruction decoding | runtime shader selection and bindings |
 
 ## Biggest open problems
 

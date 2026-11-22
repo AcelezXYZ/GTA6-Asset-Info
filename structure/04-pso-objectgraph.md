@@ -33,6 +33,29 @@ A second section family exists: `PMAP`, `PSCH`, `PSIG`, optional `STFN`/`STDN`, 
 `LRSC` bodies begin with the bytes `0DRP` (u32 little-endian `0x50524430` when read as ASCII
 `0DRP`). In the tested set these bodies are uniformly 80 bytes and contain no printable names.
 
+### Script PSIN headers
+
+The script bundles have two layouts. The section length at `+0x04`
+remains big-endian. Descriptor fields are little-endian.
+
+| Offset | v22 | Unversioned |
+|---:|---|---|
+| `0x08` | u32 version 22 | u32 first block tag |
+| `0x0C` | u32 pool length in bytes, a multiple of 8 | u32 first block length |
+| `0x10` | first full descriptor | second descriptor (first full descriptor) |
+
+A full descriptor is eight bytes of `0xAA` followed by a u32 tag and
+u32 length. Both layouts end the descriptor list with eight `0xAA`
+bytes and eight `0x70` bytes. In v22, skip the pool after the
+terminator. In the unversioned layout, the blocks follow the terminator
+directly. Align each block start to 16 bytes and check the resulting
+ranges against the section length before accepting a layout.
+
+In one unversioned file the first tag is `0x109` and the first block
+length is `0x4740`. The file's `LSCH` gives tag `0x109` a 40-byte
+record layout, so the block contains exactly 456 records. The same
+unversioned layout also occurs in the base script archive.
+
 ### `LSNS` framing
 
 Payload begins:
@@ -41,8 +64,16 @@ Payload begins:
 u32 LE 1 | 01 01 00 00 | u32 LE tail_length
 ```
 
-`tail_length = size − 12`; tails are 16-byte aligned. A variant starts with a count word
-`N ∈ {1,2,3,4}` instead of 1; for `N = 1` the `tail = size − 12` rule holds exactly.
+For the script bundles the first word is a table count `N`. After the
+count and the four flag/reserved bytes, read a little-endian u32 byte
+length for each table, interleaved with a u32 identifier after every
+length except the last. The header occupies
+`8 + 4*N + 4*(N - 1)` payload bytes. The tables are contiguous and
+each has a length divisible by 16. Header size plus summed table
+lengths equals the payload size. Versioned scripts use one table.
+Unversioned scripts can have up to three. The meanings of the table
+identifiers and the 16-byte records remain open. A count of four has
+also been observed outside this script-bundle check.
 
 ### Walk failures
 

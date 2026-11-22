@@ -38,6 +38,19 @@ further tables (BVH nodes; not needed for the mesh).
 **Material record** (8 B): **u16 surface id** at +0 (always < 0x8000), flag
 bytes after it (unknown).
 
+**Triangle BVH nodes (confirmed on sampled geometry bounds).** A node is
+16 bytes: three i16 minima, three i16 maxima, then two u16 values. The
+word at `+0x0C` equals the node count at the root. The word at
+`+0x0E` counts consecutive triangles owned by that node.
+
+For each axis of a node box, use
+`bound_min + ((q + 32768) / 65535) * (bound_max - bound_min)`, where
+`q` is the stored signed word and the bounds are those of the owning
+geometry child. This formula applies to node boxes. Vertices use the
+stored quantum and centre described above. Validation checks the
+running sum of node triangle counts against the polygon count and
+checks each owned triangle against its node box.
+
 ## 13.2 Surface ids (unresolved)
 
 The id is a 15-bit hash of the material name (`ROAD_TARMAC`,
@@ -72,7 +85,7 @@ These are categories, not material names.
 ## Open questions
 
 - The surface hash function and the full material list.
-- Material record flag bytes; BVH node tables.
+- Material record flag bytes and the remaining BVH summary fields.
 - A railway-only surface (none found).
 
 

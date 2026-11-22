@@ -21,6 +21,12 @@ Confirmed: all 2,776 BCPack BC1 textures of one terrain store decode with
 no errors. With BC1 decoded, mip 0 is readable for 98.4 % of store
 textures (86.8 % before; [coverage](05-ttpf.md#coverage-all-57-stores-352461-textures)).
 
+Exact reconstruction still needs a byte-level check. On sampled BC1
+chunks, two software decoders reproduced the same lane symbols and
+output lengths, with differing endpoint bytes on some chunks. An
+independent reference should compare the raw tiled BC1 bytes before
+detiling or converting them to pixels.
+
 **Not decoded:** the BC3, BC4, BC5, BC6H and BC7 codecs (`0x0C`, `0x10`,
 `0x14`, `0x18`, `0x1C`). About 0.8 % of textures have mip 0 in those.
 

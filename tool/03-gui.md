@@ -202,8 +202,8 @@ exports use them too.
 - In the model viewer's material list, **view** on a texture slot opens
   that texture here.
 
-BCPack BC1, BC3 and BC7 textures decode; textures with no readable mip (BC4,
-BC5 and BC6H BCPack, [§6](../formats/06-bcpack.md)) cannot be previewed. Texture arrays and cube maps show slice 0 / face 0;
+BCPack textures decode in all six formats ([§6](../formats/06-bcpack.md)); BC3–BC7
+ones can show speckles from the fitted tables. Texture arrays and cube maps show slice 0 / face 0;
 use `sixng ttpf --all-slices` for the others.
 
 ## Audio tab

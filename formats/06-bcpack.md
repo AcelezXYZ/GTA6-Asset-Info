@@ -17,8 +17,8 @@ format across all titles.
 |---|---|---|
 | `0x04` BC1 | Confirmed on sampled chunks with two implementations. | Working exports. Some endpoint presets and selector codebook entries still differ between implementations. |
 | `0x0C` BC3 | All 35 BC3 chunks decode with the expected symbol counts, the 65,536-block ones as one stream (confirmed). Two implementations also agree on every symbol on 5 samples. | **Decodes** ([§6.2](#62-bc3-blocks-codec-0x0c)): 27–47 dB against neighbouring mips, mostly 31–39. The preset table and selector codebook are fitted (inferred); not byte-exact. |
-| `0x10` BC4, `0x14` BC5 | Two implementations agree on every symbol and consume the full input on 2 BC4 and 5 BC5 samples. | Candidate rebuilders exist. No independent same-mip byte comparison. |
-| `0x18` BC6H | All 268 BC6H chunks in the local scan consumed their exact input and emitted the expected symbol counts per lane. All symbols also matched a second implementation on 5 spot checks. | Candidate rebuilders exist, but they need initial history tables. No independent byte-exact match for a complete shipped chunk. |
+| `0x10` BC4, `0x14` BC5 | Two implementations agree on every symbol and consume the full input on 2 BC4 and 5 BC5 samples. | **Decodes** ([§6.4](#64-bc4-and-bc5-blocks-codecs-0x10-0x14)): BC4 35–50 dB, BC5 median 43 dB against neighbouring mips. Index-pair tables and presets are fitted (inferred); not byte-exact. |
+| `0x18` BC6H | All 268 BC6H chunks in the local scan consumed their exact input and emitted the expected symbol counts per lane. All symbols also matched a second implementation on 5 spot checks. | **Decodes** ([§6.5](#65-bc6h-blocks-codec-0x18)): 86 % of blocks within 0.15 stops of neighbouring mips, 27 dB tonemapped (18–49 dB per texture). History tables are fitted (inferred); not byte-exact. |
 | `0x1C` BC7 | All 5,167 BC7 chunks of the data and content-pack stores decode (5,120 in the data stores). All symbols also matched a second implementation on 24 spot checks. | **Decodes** ([§6.3](#63-bc7-blocks-codec-0x1c)): on 1,029 chunks checked against the next mip, 65.5 % of blocks within 3 levels, median 35.4 dB, no invalid blocks. The 256-slot history table is fitted (inferred); not byte-exact. |
 
 For BC1, the block count is the chunk's virtual size divided by 8.
@@ -35,6 +35,9 @@ for 98.4% of store textures
 and BC7 as well (2026-11-22), mip 0 is outside undecodable BCPack chunks for
 99.94 % of the 357,112 textures of the data and content-pack stores (99.41 %
 before BC7). 1,872 textures gain a full-size mip 0 from BC7, 17 from BC3.
+With BC4, BC5 and BC6H too, **every texture of the 357 K has a decodable
+mip 0** by the chunk-table check (99.97 % before BC6H); BC4 adds 40
+textures, BC5 91 and BC6H the last 98.
 
 ## 6.1 What is solved
 
@@ -74,8 +77,10 @@ are the two symbols a lane emits per block (E first, O second).
 
 ## 6.2 BC3 blocks (codec `0x0C`)
 
-Decodes on all 35 chunks (2026-11-22). Lane widths in bits:
-`3, 3, 7, 5, 5, 5, 5, 4, 5, 4, 7, 7`.
+Decodes on all 35 chunks (2026-11-22). Symbol widths in bits per lane:
+`4, 4, 8, 6, 6, 6, 6, 5, 6, 5, 8, 8` (an earlier note gave each one less,
+the parameter form; the bit widths match the fields: 6-bit alpha pair
+symbols, R5 / G6 / B5, an 8-bit codebook index).
 
 | Lane | Role | Confidence |
 |---|---|---|
@@ -134,7 +139,51 @@ blocks within 3 levels, median 35.4 dB, no invalid BC7 blocks. Mis-fitted
 history slots show as speckles near chunk starts; 12 % of the checked
 chunks are under 20 dB, partly from poor reference mips.
 
-## 6.4 Ruled out
+## 6.4 BC4 and BC5 blocks (codecs `0x10`, `0x14`)
+
+Decode on all chunks (2026-11-22). Distance 0 predicts 128; endpoints are
+modulo 256. Each format has its own fixed 64-entry table of 3-bit index
+pairs (fitted, inferred).
+
+| | BC5 | BC4 |
+|---|---|---|
+| lanes, symbol widths | 12: `4, 4, 8, 8`, then 8 × 6 | 12, the same but lanes 0–3 are 8-bit |
+| symbols per block | two (E, O) per 16-byte block | **one 8-byte block per symbol**: block 2j = E, 2j + 1 = O |
+| lane 0 | distance, as BC3 | distance = unzigzag(v) mod 256 |
+| lane 1 | unused | |
+| lanes 2 / 3 | channel 0 / channel 1 endpoint residuals (E = e0, O = e1) | e0 / e1 residuals |
+| index lanes | 4–7 channel 0, 8–11 channel 1: lane 4 + k has E = pixels 4k, 4k + 1 and O = 4k + 2, 4k + 3 | lane 4 + k = pixels 2k, 2k + 1 |
+
+## 6.5 BC6H blocks (codec `0x18`)
+
+Decodes on all 268 chunks (2026-11-22). 16 lanes, symbol widths
+`4, 4, 8, 8, 8, 5, 5, 5, 6, 6, 6, 8, 8, 8, 8, 5`, two symbols per block.
+Distances as BC7 ([§6.3](#63-bc7-blocks-codec-0x1c)).
+
+- **Mode:** lane 15 E = mode 0–13 (BC6H modes 1–14 in the standard order),
+  O = partition.
+- **Endpoint state:** every stored field (w, x, y, z of each channel, as
+  the block stores them; x, y, z are deltas in transformed modes) has a
+  16-bit MSB-aligned state. A field of b bits = `(state >> (16 − b)) +
+  unzigzag(residual)` mod 2^b. Residuals: w = `il(E, O)` of lanes 2–4, x =
+  `il(E, O)` of lanes 5–7, y = E and z = O of lanes 8–10. Distance 0
+  predicts `0x8000` for every field.
+- **12- and 16-bit w:** these modes hold w's bits from bit 10 up reversed
+  relative to the block field, as the BC6H block layout stores them.
+- **One-region hand-over (confirmed by the fix it gave):** a one-region
+  block passes its state on as z = x; y = w for the untransformed 10-bit
+  mode; for transformed one-region modes y = `(w << (16 − delta_bits)) XOR
+  0x8000`. A later two-region block therefore predicts y from the low bits
+  of w. This removed the speckles after mode changes (blocks within 0.15
+  stops: 81 % → 86 %; 23 → 27 dB).
+- **Indices:** the BC7 scheme with a 4-bit MSB-aligned state, 3-bit reads in
+  two-region modes; distance 0 predicts 8. Anchor top bits are dropped
+  (truncating fits better than keeping them).
+
+Chunks of the lighting stores have inconsistent neighbouring mips (a flat
+mip 3 under a mip 1 with a logo), so they cannot be scored.
+
+## 6.6 Ruled out
 
 - The BC1 index lanes do not need an adaptive model or a separate
   extension-lane parser. The fragment header selects a static rANS model.
@@ -147,10 +196,12 @@ chunks are under 20 dB, partly from poor reference mips.
   every lane matches. All six differences trace to one endpoint preset
   and two selector symbols.
 
-## 6.5 Open unknowns
+## 6.7 Open unknowns
 
-- **BC3 and BC7 tables:** the history slots and the BC3 selector codebook
-  are fitted against neighbouring mips. No plain copy of any affected
+- **Fitted tables (BC3, BC4, BC5, BC6H, BC7):** the history slots, the BC3
+  selector codebook and the index-pair tables are fitted against
+  neighbouring mips (per-slot coordinate descent over the blocks each slot
+  roots). No plain copy of any affected
   mip 0 exists in the install, so nothing confirms them byte for byte.
 
 **BC1/3/4/5:** Confirm the disputed or fitted endpoint presets and selector
@@ -174,7 +225,7 @@ pixel renderers agree on the corrected previews. These checks isolate
 the preset dependence and layout but do not prove the original BCPack
 blocks byte for byte.
 
-## 6.6 How to resume
+## 6.8 How to resume
 
 1. Check the entropy decoder first. Derive counts from the chunk table,
    remove only the documented padding and compare all lane symbols

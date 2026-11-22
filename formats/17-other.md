@@ -83,14 +83,27 @@ the console representation remain open.
 
 ## Vehicle handling
 
-One PSO in `data.rpf` holds the handling data: 1,097 records of struct
-`1ddb46e190779a14` (confirmed).
+The PSO at `data.rpf@0x1c35b000` holds 1,097 handling rows of struct
+`1ddb46e190779a14` (72 bytes per row, PSIN block tag `0x90779a14`).
 
-| Field | Meaning |
-|---|---|
-| `93db5464` | joaat of the lower-case handling name (`phoenix`); 301 match model names |
-| `49a01a86` | a second name hash, often 0 |
-| `41c8dec7` | array of polymorphic components, one struct type per component |
+| Field | Row offset | Meaning |
+|---|---|---|
+| `93db5464` | `+0x08` | Handling name hash (lower-case joaat, e.g. `phoenix`) |
+| `49a01a86` | `+0x0C` | Second name hash; all 624 nonzero values resolve to another handling row by `93db5464` |
+| `41c8dec7` | `+0x10` | `{u32 count, u32 capacity, u64 pool_ref}` to an array of u64 pool references |
+
+Each array element addresses a component instance; use the target PSIN
+block's struct tag to decode it. All 3,481 references across 1,034 nonempty
+arrays resolve to aligned records of 60 distinct struct tags. The second
+name hash is consistent with a base-profile link; runtime inheritance or
+component override rules are not verified.
+
+Join [vehicle model info](11-vehicle-paint.md#vehicle-tables) `handlingId`
+(`ec41bd9c`, `+0xAC`) to `93db5464`, not `gameName`. All 327 model-info rows
+in the merged table at `packs.rpf@0xa934010` resolve uniquely; 48 store
+`gameName != handlingId`. For example, model-info row `0x11523b0` of that
+inflated resource stores `gameName=0xe54c8bcf` and `handlingId=0x32e37f93`
+(`airgator`).
 
 | Component | Contents (inferred from the field names) |
 |---|---|

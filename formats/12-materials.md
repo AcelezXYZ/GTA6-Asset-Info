@@ -89,7 +89,7 @@ materials, not from shader code (as of 2026-11-20).
 | layer 2 weight | COLOR0.a, the only vertex channel painted over 0..255 | same | inferred |
 | layer 2 UV set | TEXCOORD_1 (texel anisotropy matches in 108/117 and 54/72 primitives) | — | inferred |
 | base UV set | TEXCOORD_0 (by elimination; TEXCOORD_2 is often constant) | — | inferred, weak |
-| COLOR0 r, g, b | r mostly 255, g within 0..45, b a few distinct values | — | unknown meaning |
+| COLOR0 r, g, b | r mostly 255, g within 0..45 (meaning unknown); b is the tint palette index ([below](#tint-palettes)) | — | r, g unknown |
 | data maps (BC7) | R varies, G about constant per texture, B and A vary | — | unknown meaning |
 | two-channel maps (BC1) | R = 0, G and B anti-correlated | — | unknown meaning |
 
@@ -116,6 +116,22 @@ Tags in `12f85293` are joaat of the lower-case tag name: `002f77d9` =
 the preset applies to** (joaat of the full drawable name); this is how a
 head gets its face ([§7.5](07-models.md#ped-heads-face-textures-confirmed)).
 Set and preset names do not resolve.
+
+### Tint palettes
+
+Slot `2c8d7182` (`tintpalettetex`, table above) is a palette embedded in the
+model. **Vertex colour blue (`COLOR0.b`, stream 1) indexes it** (confirmed:
+on 36 sampled models the index never reaches a filler `ffbbff` entry).
+Tinted parts have bright, near-grey base textures (mean saturation 0.05),
+so the tint multiplies the base colour (inferred): white pool tiles come out
+pool-blue, white cables black, grey or blue.
+
+- Widths seen: 13, 20, 37, 66, 69, 129, 131, 256, 260, 513, 517, 1,024 and
+  2,051 entries.
+- Wider palettes repeat in rows: later rows start with white, at 256 / 512 /
+  768 on 1,024-wide palettes and at 32 / 64 / 96 on a 131-wide one.
+  The row is probably chosen by the entity's `tintValue` (`3c852527`,
+  [§9](09-placements.md)); unverified. Row 0 is the default.
 
 **Texture hashes in no store.** Embedded tint palettes account for 30,095 of
 the 33,770 texture hashes that a full map export finds in no `ttpf` store.

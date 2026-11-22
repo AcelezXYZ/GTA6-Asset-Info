@@ -96,7 +96,7 @@ materials, not from shader code (as of 2026-11-20).
 | layer 2 weight | COLOR0.a, the only vertex channel painted over 0..255 | same | inferred |
 | layer 2 UV set | TEXCOORD_1 (texel anisotropy matches in 108/117 and 54/72 primitives) | — | inferred |
 | base UV set | TEXCOORD_0 (by elimination; TEXCOORD_2 is often constant) | — | inferred, weak |
-| COLOR0 r, g, b | r probably a baked shading term, g equal to r or a surface mask ([below](#vertex-colour-red-and-green)); b is the tint palette index ([below](#tint-palettes)) | — | r, g inferred |
+| COLOR0 r, g, b | r and g unknown ([below](#vertex-colour-red-and-green)); b is the tint palette index ([below](#tint-palettes)) | — | r, g unknown |
 | data maps (BC7) | R varies, G about constant per texture, B and A vary | — | unknown meaning |
 | two-channel maps (BC1) | R = 0, G and B anti-correlated | — | unknown meaning |
 
@@ -109,7 +109,8 @@ integrability test on 270 of 300 maps). Invert G for glTF/OpenGL.
 
 ### Vertex colour red and green
 
-Sampled on 4,000 models (inferred; the export does not use them):
+Sampled on 4,000 models. Both channels are still **unknown**; every test so
+far was negative (the export does not use them):
 
 - **Red** looks like a baked shading term. It is mostly 255, about 23 on
   average on trees, and shows soft dark blobs on ground tiles where trees
@@ -118,10 +119,14 @@ Sampled on 4,000 models (inferred; the export does not use them):
   either from the model's own geometry or from the placed world around it:
   on two ground tiles cast against every placed model within 120 m, the
   correlation with red is about 0 (−0.02 and 0.06), and with green 0.06
-  and 0.14 (confirmed negative result).
+  and 0.14 (confirmed negative result). Nearby instanced trees, the AO
+  byte of the grass batches and the distance to the road do not explain it
+  either.
 - **Green** equals red on 63 % of ordinary vertices. On ground shaders it
-  works as a per-surface mask: on one street tile, grass 0, road mid grey,
-  pavement 255.
+  is low and changes from surface to surface (on one street tile grass 0,
+  road mid grey, pavement 255), but it also varies widely within one
+  collision surface (standard deviation about 54 of 255 on a road), so it
+  is not a surface-type mask.
 
 ## Material presets (peds)
 

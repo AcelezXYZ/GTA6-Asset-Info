@@ -60,12 +60,11 @@ The vehicle and material structs (`e59aa857`, `51019114`, `fc1c7000`,
 may be new or renamed types. PSO struct names are a separate, 64-bit scheme
 ([§17](17-other.md#pso)).
 
-**Method.** Every identifier in CodeWalker's GTA V sources (63,839 tokens)
+**Method.** Every identifier in public GTA V type and field name lists (63,839 tokens)
 was hashed as written and in lower case, and compared with the 193 hashes
 quoted in these notes. 66 match. The expected number of chance matches is
 about 0.006 (63,839 × 2 × 193 / 2³²), so a match is a name, not a
-coincidence. Adding public RDR2 lists (native and enum databases,
-`rdr3_discoveries`) resolved nothing further. The names above are confirmed
+coincidence. Adding public RDR2 name lists resolved nothing further. The names above are confirmed
 by hash; what a field means is still inferred from its use.
 
 ```python

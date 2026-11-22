@@ -8,6 +8,19 @@ weapons…), magic `RDS5`. Each store is a virtual byte space (can exceed
 the **64-bit texture hash that drawable shaders reference** ([§7.6](07-models.md)). Most
 map and vehicle textures live here, not in texture dictionaries.
 
+**Content-pack stores** (confirmed): `pack/<name>/data/ttdb/**/*.ttpf` holds
+11 more stores (4,654 textures, about 1.2 GB) in `core_restofworld`,
+`core_restofworld001`, `shared_minigame000` and `story000`, with the same
+format. They hold the textures of the models in that pack's own archive
+(`story000.rpf`: 4,156 models, `core_restofworld`: 814,
+`shared_minigame000`: 668) and of 24 ped models in `packs.rpf`; no
+`levels.rpf` model references them. Only 4 hashes are in both a pack store
+and `data/ttdb`, with identical textures. On 40 sample models per pack,
+using them cuts the missing textures from 944 to 135 (`story000`), 288 to
+96 (`shared_minigame000`) and 344 to 234 (`core_restofworld`, where most of
+the rest is one placeholder hash, `5d7a3a87cc19967d`, used by gore and body
+shaders and found nowhere in the install).
+
 ## Header
 
 | Off | Meaning | Confidence |

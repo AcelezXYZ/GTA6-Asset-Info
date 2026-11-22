@@ -9,11 +9,18 @@ Where the names come from:
 - a shader preset list in `common.rpf` names all 344 shaders;
 - uncompressed blocks in `shaders.rpf`, before the compressed cache, hold
   NUL-terminated technique, sampler and texture names and 24-byte binding
-  records. Texture bindings are `{texture hash, parameter hash, 02 01 xx xx,
-  00 80 00 00}`, e.g. (`diffusetexture`, `diffusetex`);
-- a word search over likely parts. Per-layer sets (`lyr0…`, `lyr1…`) check
+  records. Variables are `{u32 hash, u32 same hash, 0x30, …}`; texture
+  bindings are `{texture hash, parameter hash, 02 01 xx xx, 00 80 00 00}`,
+  e.g. (`diffusetexture`, `diffusetex`). 88 of 89 sampled drawable
+  parameter hashes occur in these records;
+- a word search: names not stored as text were found by joining likely
+  words and testing joaat. Per-layer sets (`lyr0…`, `lyr1…`) check
   themselves; names that differ only in a final digit do not, because joaat
-  states collide before the last character.
+  states collide before the last character. Single matches of long
+  multi-word names are noise and were dropped.
+
+The texture-dictionary key at TXD +0x20 is plain joaat of the texture name
+(lower case), as in GTA V.
 
 77 of 229 parameters resolve, about 75 % of uses. 344 shaders over 254 K
 drawables (1.83 M shader instances) in `levels.rpf` + `packs.rpf`.
@@ -163,8 +170,14 @@ engine defaults (inferred).
 
 ## Open questions
 
-- 152 of 229 parameter names; the collision surface hash
+- 152 of 229 parameter names (mostly constants), and the four per-layer
+  slots of the ground shaders; the collision surface hash
   ([§13](13-collision.md)) is a different, unsolved one.
+- The 64-bit texture hash ([§5](05-ttpf.md)): FNV-1/1a 64, xxHash64,
+  MurmurHash64A, CRC-64 (ECMA, XZ, ISO) and a 64-bit one-at-a-time over
+  46 K known names (texture-dictionary texture names, model names, XML
+  identifiers), as given, lower and upper case, match no texture hash or
+  either 32-bit half beyond chance.
 - Whether `c6f46e79` G is roughness or gloss; emissive and glass flags for
   unknown shader families.
 

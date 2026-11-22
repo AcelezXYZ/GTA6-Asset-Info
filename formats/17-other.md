@@ -228,24 +228,53 @@ hash for flat `pack:/<stem>.clip` paths (1,650 records).
 
 ### Scene clip references
 
-In the sampled `0DRP` v122 class registry, each entry's `u32` at
-`+0x18` is the **instance stride**, not descriptor byte length. Read
-the `u16` descriptor count at `+0x1e`, then that many 16-byte descriptors
-from the `+0x10` pointer. In the verified scene object graph, a packed
-reference stores a one-based block index in the low 20 bits and a byte
-offset within that block above them.
+In the `0DRP` v122 class registry, each entry's `u32` at `+0x18` is the
+**instance stride**, not descriptor byte length. Read the `u16`
+descriptor count at `+0x1e`, then that many 16-byte descriptors from the
+`+0x10` pointer. A packed object reference stores a one-based block index
+in the low 20 bits and a byte offset within that block above them.
 
-The scene at `anim.rpf@0x94f010` reaches an inline class `0x24749343`
-through section/event references. Its descriptors identify
-`clipDictionaryName` (`0x25de16df`) at `+0x08` and `clipName`
-(`0x24fc8f24`) at `+0x0c`, both type-`0x4a` `u32` values. The pair
-`0x65d46c10`/`0x9302c678` selects dictionary `anim.rpf@0x272d5010` and
+All 22,823 `0DRP` schemas in `anim.rpf` contain inline clip-reference
+class `0x24749343`, whose instance stride is `0x18`:
+
+| Offset | Type | Meaning |
+|---|---|---|
+| `+0x08` | `u32` | Dictionary/set hash; descriptor field hash `0x25de16df`, type `0x4a` |
+| `+0x0c` | `u32` | Clip stem hash; descriptor field hash `0x24fc8f24`, type `0x4a` |
+| `+0x10` | `u32` | Flag; observed 695,621 times as 1 and 10,644 times as 0 |
+| `+0x14` | `u32` | Observed zero |
+
+To find the reference, do not assume a fixed offset in the event object:
+search parent descriptors for a type-`0x05` field whose aux class tag is
+`0x24749343`. Eleven parent class tags occur in the archive. Most use the
+`clip` field (`jhash("clip")` = `0xe71bd32a`) at `+0x38`; four also have
+a second reference (`0x7c0a2099`) at `+0x68`. Less common layouts place
+it at `+0x08` or `+0x120`, or one inline level deeper. In the common
+shared-header event classes, field `rate` (`0x7e68c088`) is an `f32` at
+`+0x5c`.
+
+A full-archive pass walked 1,628,388 reference instances, of which
+706,265 had both hashes nonzero. The same pass carved 52,912 dictionaries
+and 294,794 bucket nodes. Requiring a bucket node with
+`(stem,set) == (clip_hash,dict_hash)`, plus the mirrored keys in the clip
+record, fully validated 148,314 reference rows into 14,575 unique
+dictionary/clip pairs, covering 6,856 dictionaries and 6,201 stems.
+
+The unresolved rows are not simply corrupt: 482,552 name a carved
+dictionary but not the stored clip stem, while 75,399 name a dictionary
+hash absent from `anim.rpf`; 554,783 stems occur only under another set.
+The dominant misses reference gesture variant sets whose stems are stored
+under sibling/base/common sets, consistent with a fallback hierarchy.
+Treat an absent direct `(dict,clip)` match as unresolved rather than
+proof that no clip exists.
+
+For example, the scene at `anim.rpf@0x94f010` contains pair
+`0x65d46c10`/`0x9302c678`, selecting dictionary `anim.rpf@0x272d5010` and
 clip `+0xdba60` (`pack:/jason_buddy_kiss_jason.clip`). That clip's source
 window uses source `+0xdc830`, sequence `+0xa7390`, from 4.5 to 7.9
 source seconds at rate 1. Dictionary `0x26eeb010` contains the same clip
 name and stem hash under a different dictionary hash (`0x7cb407d0`), so
-a name or stem match alone selects the wrong copy. This is one rooted
-reference path, not a full scene or gameplay-state parser.
+a name or stem match alone selects the wrong copy.
 
 ### Clip windows and source tracks
 

@@ -201,7 +201,54 @@ seven windows).
 
 Clip names, durations and sequence channels decode (confirmed). Sampled rotation
 tracks validate as unit quaternions: 3.95 M values, worst |q| − 1 about 1.2e-7
-(confirmed). The skeleton is not stored in the clip dictionaries.
+(confirmed). A unit norm alone does not validate the decoded pose. The
+skeleton is not stored in the clip dictionaries.
+
+### Clip windows and source tracks
+
+For the sampled Xbox Series 1.0.2.1 type-2 clips, `+0x18` points to the
+name, `+0x68` is the `f32` clip duration, and `+0x58` points to an array
+of 0x18-byte wrappers counted by the `u16` at `+0x60`. Each wrapper has a
+window array pointer at `+0x00`, `u16` window count at `+0x08` and `f32`
+duration at `+0x10`. Window stride is 0x38:
+
+| Offset | Type | Meaning |
+|---|---|---|
+| `+0x00` | ptr | Source animation record |
+| `+0x08` | `u32` | Lowercase joaat of the source name without `pack:/` or `.anim` |
+| `+0x28` | `f32` | Start time in the source, seconds |
+| `+0x2c` | `f32` | End time in the source, seconds |
+| `+0x30` | `f32` | Source seconds per clip second |
+
+Sample each window at `start + clip_time * rate`. Different windows can
+contribute tracks over the same clip time; do not concatenate them. In
+836 clips across seven dictionaries, all 2,502 source pointers and hashes
+resolved, and `(end - start) / rate` agreed with clip duration within
+0.000013 s. An embedded `pack:/...clip` string alone is not proof of a clip
+record.
+
+For the sampled source record layout with a 0x20-byte prefix, offsets
+from the **record start** are:
+
+| Offset | Type | Meaning |
+|---|---|---|
+| `+0x24` | `u16` | Source frame count |
+| `+0x28` | `f32` | Source duration, seconds |
+| `+0x30` | ptr | Source name |
+| `+0x50` / `+0x58` | ptr / `u16` | Sequence pointer array / count |
+| `+0x60` / `+0x68` | ptr / `u16` | Track row array / count |
+
+The track stride is **12 bytes**: `{u32 target_hash, u32 property_hash,
+u32 kind}` (233 sampled tables). For skeletal tracks, the target is the
+full lowercase joaat of the bone name, not the 16-bit tag. It matches the
+`u32` at `+0x1c` in the [ped bone record](07-models.md#75-skeleton-fragments-confirmed).
+Verified on the `ambient_malebody` and `ambient_femalebody` fragments at
+`packs.rpf@0x454db010` and `packs.rpf@0x45404010` respectively.
+Property `0x98e1750c`, kind `0`, is an XYZW local rotation;
+`0xf791a95f`, kind `2`, is an XYZ local translation. Other track
+properties can target controls rather than indexed bones.
+
+### Sequence channels
 
 The 0x20-byte sequence header gives the payload size at `+0x04`, the
 payload-relative frame-data offset at `+0x0C`, and the header-relative
@@ -210,15 +257,79 @@ frame are u16 values at `+0x16` and `+0x18`.
 
 Channel parameters precede the frame data. After
 `frame_count * bytes_per_frame` bytes of frame data, read **eleven**
-u16 channel-list counts and their u16 lists. Pad each list to a multiple
-of four u16 words. The lists end at the root-motion region. Each
+u16 channel-list counts and their u16 lists. A list word is
+`track_index << 2 | component_index`; the track index addresses the
+12-byte rows. In the sampled type-7 cached quaternion records, the low
+two bits identify the omitted XYZW component, reconstructed as the
+positive square root of `1 - sum(other_components^2)`. Pad each list
+to a multiple of four u16 words. The lists end at the root-motion region. Each
 root-motion reference consumes six bytes.
 The high and low nibbles of byte `+0x1F` count position and rotation
 references. Check that the lists close at
 `0x20 + payload_size - 6 * (position_count + rotation_count)`.
-This size check passed on all tested sequences. Channel type
-9 had zero entries in the sample. Type 10's list is readable and its
-parameter encoding remains open.
+This size check passed on all tested sequences.
+
+**Type 10: incremental float.** The parameter record begins with a
+`u32` size in 4-byte words (including the header), four descriptor bytes,
+then `f32 quantum` and `f32 bias`. Descriptor bytes 0 and 1 give the bit
+widths of the offsets and initial values respectively; byte 2 is
+unidentified and byte 3 was zero in tested records.
+
+Read the payload LSB-first. Divide the sequence into 64-frame chunks.
+Read one lane bit offset per chunk, then one initial quantized value per
+chunk. Read a unary width (zero bits terminated by one) for each group of
+up to eight residual frames, excluding each chunk's first frame. Align
+to 32 bits. The residual payload is eight lanes interleaved by 32-bit
+word: lane `l`'s logical word `w` is payload word `8*w + l` after
+alignment. Each residual group reads the same width at the same bit
+offset from lanes 0 through `min(8, remaining_frames) - 1`, in order.
+
+```text
+for each chunk:
+    pos = lane_offset[chunk]
+    value = initial_value[chunk]
+    velocity = 0
+    emit(value * quantum + bias)
+    for width, count in the chunk's residual groups:
+        for lane in 0 .. count-1:
+            u = read_unsigned_bits(lane, pos, width)
+            velocity += (u >> 1) XOR -(u & 1)
+            value += velocity
+            emit(value * quantum + bias)
+        pos += width
+```
+
+Each chunk's widths sum to the distance to the next stored lane offset.
+The last lane end, rounded to 32 bits and multiplied by eight, accounts
+for the rest of the record. Both checks passed for **36,158 records in
+302 sequences**. Type 10 contributes no bits to the per-frame stream.
+This layout produces continuous rotations in tested clips, but does
+not resolve all observed type-5 and type-8 anomalies; type 9 remains
+undecoded.
+
+### Pose root and trajectory
+
+In `pack:/1f_twerk_ped_01.clip` (`anim.rpf@0xf7f1f010`, clip `+0x194f0`,
+sequence `+0x20000`), `SKEL_ROOT` has a rotation and translation
+separate from the trajectory in the sequence footer. Applying the two
+skeletal tracks as **absolute local** transforms on the matching female
+rig, rather than re-anchoring the first sample to the root bind
+orientation, reproduces the planted portion of the motion without foot
+IK. Over frames 39-100, the left/right toe-height standard deviations
+dropped from 0.190/0.207 m with the re-anchored root to 0.005/0.001 m
+with the absolute root, keeping all non-root keys unchanged.
+
+The six-byte footer references in this sequence resolve as
+`{u8 channel_kind, u8 component, u16 parameter_word_offset,
+u16 frame_bit_offset}`. Parameter word offsets are in 4-byte units from
+the start of the sequence payload; frame bit offsets are relative to
+the start of each packed frame for frame-coded channels. The three
+position references resolve to track 36; the four rotation references
+resolve across tracks 0 and 153, which encode the same heading curve in
+this sample. The separate trajectory reaches 0.728 m of planar
+displacement and about 141 degrees of heading change. How the runtime
+combines it with the pose, and whether the reference field interpretation
+generalizes to all sequences, are not yet verified.
 
 ## Ped body shape
 

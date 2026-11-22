@@ -20,7 +20,7 @@ documentation only: no game files, no extracted assets, no keys. Read
 | Map data | [Meta resources](formats/08-meta.md) · [Placements and batches](formats/09-placements.md) · [Interiors](formats/10-interiors.md) |
 | World | [Collision](formats/13-collision.md) · [Navmesh](formats/14-navmesh.md) · [Lights](formats/15-lights.md) · [Road graph](formats/16-roads.md) |
 | Materials | [Vehicle paint and tables](formats/11-vehicle-paint.md) · [Material classes](formats/12-materials.md) |
-| Other | [PSO, RBF, BVH4, audio, animation, video, UI](formats/17-other.md) |
+| Other | [PSO, RBF, BVH4, audio, animation, body shape, video, UI](formats/17-other.md) |
 | Byte-level notes | [Index](structure/00-INDEX.md) · [RPF9 container](structure/01-rpf9-container.md) · [Resources and textures](structure/02-resources-textures.md) · [Audio (`ADAT`)](structure/03-audio-awc.md) · [PSO and object graph](structure/04-pso-objectgraph.md) · [`ttpf` stores](structure/05-ttpf-stores.md) · [Models and shaders](structure/06-models-shaders.md) |
 
 The [format index](formats/README.md) has the conventions. Every page gives
@@ -37,9 +37,10 @@ differ.
 |------|-----------|---------|
 | RPF9 archives | header layout; payload is plain zlib | the table of contents is encrypted, so there are no file names or paths |
 | Resources | system/graphics pages, pointers, names inside resources | some unnamed resources |
-| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts; BCPack BC1 (98.4 % of 352 K store textures readable at full size) | **BCPack** BC3–BC7 (0.8 % of textures); 4-/2-byte layouts |
+| Textures | dictionary textures; Xbox tiling for BC formats; `ttpf` stores with AMD Gfx10 layouts (BC and 1-byte formats); BCPack BC1 (98.4 % of 352 K store textures readable at full size) | **BCPack** BC3–BC7 (0.8 % of textures); 4-/2-byte layouts |
 | Models | vertex streams, meshlet index buffers, LODs, skeletons, skinning (incl. u16 bone indices; ped clothing with 8 influences through a bone palette to the shared ped skeleton), shaders' texture references; shader names (all) and most parameter names | texture names (64-bit hash), constant buffers |
 | Vehicles | parts, damage and mod-kit parts, wheel mounts; model info, spawn configurations (body colour, rim, tyre), weighted paint-colour lists, handling records | how the wheel scale sizes the shared wheels, secondary colours, liveries, many handling fields |
+| Peds | clothing skinning (8 influences, bone palette, shared 596-bone skeleton); body-shape presets, the control → rig-input map and the pose-rig format, which runs | head skinning, two rig ops, lower-LOD rigs, rig input names |
 | Map data | self-describing meta resources; entities, LOD hierarchy and LOD parents (99 %), archetypes, grass and prop batches, interiors with rooms and entity sets | prefab placement, some hashed fields |
 | Collision | bounds geometry and primitives, surface ids; inferred surface categories for 98.3 % of area | surface names (unknown hash) |
 | Navmesh | tiles, polygons, road flag | most other flags |

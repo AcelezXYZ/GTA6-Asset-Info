@@ -63,6 +63,10 @@ older `gui_cache_v*` folders can be deleted.
   listed, and the paint-colour lists show as swatches with their shares.
   Rims and tyres are sized as 1.625 × `wheelScale`, front and rear
   separately (a fitted factor).
+- **Body shape** field (ped clothing): the same controls as
+  `--body-shape` ([CLI](02-cli.md#output-flags)), applied to exports. The
+  viewer itself draws the bind pose, so the shape shows in the exported GLB
+  (Blender and other glTF viewers), not in the viewer.
 - **LOD** buttons; debug views (albedo, normals, UV checker, single texture
   slot, **BCPack gaps** green/amber/red, vertex colour, lighting only);
   wireframe and normal lines.

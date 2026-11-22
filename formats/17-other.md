@@ -16,7 +16,7 @@
 | PSIN scene placements (`story000_script.rpf`) | 97,504 64-byte placement records (confirmed). See [PSIN scene placements](#psin-scene-placements) |
 | movies (`movies.rpf`) | Bink 2: 515 movies, 505 `KB2n` and 10 `KB2j`, stored uncompressed; header, frame index and Bink Audio tracks parse (confirmed); video needs a Bink 2 decoder. See [Video](#video) |
 | UI graphics | named texture dictionaries in `data.rpf` and UI texture stores. See [UI graphics](#ui-graphics) |
-| text (GXT) | `0DRP` type `0x7a` key/text resources; 54,118 keys (confirmed). See [Text (GXT)](#text-gxt) |
+| text (GXT) | `0DRP` type `0x7a` key/text resources; 54,118 keys (confirmed). All 14,482 tables of `data.rpf` (4.21 M strings, one table per language) and the 78 of `shared_minigame000` decode (confirmed). See [Text (GXT)](#text-gxt) |
 
 ## PSO
 
@@ -676,6 +676,33 @@ variant-item table. Item `i` is at `16 * (first_slot + 2 * i)`
 bytes into that table, with its text locator at `+0x00` and u64
 attributes at `+0x08`. This lookup recovers the stored alternatives.
 The runtime selection rule for the attributes is unknown.
+
+### Tables, labels and markup
+
+(Confirmed by decoding every table, 2026-11-22.) The resources carry no
+name. `data.rpf` holds **14,482 tables with 4.21 M strings** (UI, subtitles,
+item names, phone, ambient speech); `pack/shared_minigame000` holds 78
+tables with 23 K strings: 13 languages × 6 tables (arcade minigame
+subtitles of 322, 417, 490 and 505 strings, 23 speaker names, a 12-line
+poem). Each table is **one language**. The language is not stored; it
+follows from the text. Copies of one table sit at fixed strides through
+`data.rpf`.
+
+- The block table at +0x38 ({u32 struct hash, u32 size, u64 pointer}, u16
+  count at +0x4C) has the `a8478889` locators (16 bytes each), the `0x101`
+  key map and the `0x10` text page, which sits before or after the map
+  depending on the file. Read keys only from the `0x101` block: a scan of
+  the whole file for slot-shaped records finds false hits (e.g. key
+  `00000006`).
+- Labels are joaat of the lower-case label. A **subtitle's label is its
+  voice-line name plus a 2-digit variation**, e.g. `AG_SUR_GEAR_FIRST1_01`.
+  The minigames' dialogue PSO (`shared_minigame000.rpf@19000`) keys lines by
+  joaat of the line name → {`8d6b17bd` hash, `MissionId`}. Most label names
+  are not recovered.
+- Inline markup: `~sl:gap:duration~` splits a subtitle into timed pieces
+  (seconds); `~n~` new line; `~b~`, `~s~` colours; `~1~` parameters;
+  `~INPUT_…~` button icons, `~BLIP_…~`, `~COLOR_…~`
+  (`COLOR_SUBTITLE_FOREIGN_DIALOGUE` marks translated foreign-language lines).
 
 ---
 

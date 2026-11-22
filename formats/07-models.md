@@ -33,7 +33,7 @@ u32 magic `0x4042` at 0.
 | Slot | Fmt | Size | Meaning | Confidence |
 |------|-----|------|---------|-----------|
 | 0 | 0x42 | 8 | position (below) | confirmed |
-| 1 | 0x26 | 4 | RGBA8 vertex colour: **b = tint palette index** ([§12](12-materials.md#tint-palettes)); a = layer-2 weight on multilayer shaders; r, g unknown | confirmed (b, a) |
+| 1 | 0x26 | 4 | RGBA8 vertex colour: **b = tint palette index** ([§12](12-materials.md#tint-palettes)); a = layer-2 weight on multilayer shaders; r probably a baked shading term, g a surface mask on ground shaders ([§12](12-materials.md#vertex-colour-red-and-green)) | confirmed (b, a); r, g inferred |
 | 2 | 0x21 | 4 | normal, octahedral 10:10 | confirmed |
 | 3 | 0x28 / 0x42 | 4 / 8 | UV0: 2 × s16 / 8192, or 2 × f32 | confirmed |
 | 4 | 0x28 | 4 | UV1 | confirmed |

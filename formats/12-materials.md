@@ -89,7 +89,7 @@ materials, not from shader code (as of 2026-11-20).
 | layer 2 weight | COLOR0.a, the only vertex channel painted over 0..255 | same | inferred |
 | layer 2 UV set | TEXCOORD_1 (texel anisotropy matches in 108/117 and 54/72 primitives) | — | inferred |
 | base UV set | TEXCOORD_0 (by elimination; TEXCOORD_2 is often constant) | — | inferred, weak |
-| COLOR0 r, g, b | r mostly 255, g within 0..45 (meaning unknown); b is the tint palette index ([below](#tint-palettes)) | — | r, g unknown |
+| COLOR0 r, g, b | r probably a baked shading term, g equal to r or a surface mask ([below](#vertex-colour-red-and-green)); b is the tint palette index ([below](#tint-palettes)) | — | r, g inferred |
 | data maps (BC7) | R varies, G about constant per texture, B and A vary | — | unknown meaning |
 | two-channel maps (BC1) | R = 0, G and B anti-correlated | — | unknown meaning |
 
@@ -99,6 +99,19 @@ their names (`standard_uber_4lyr_spx_dm_hbb`, `standard_uber_4lyr_pxm_hbb_fixuv1
 
 **Normal maps are DirectX convention (green = +Y down)** (confirmed by an
 integrability test on 270 of 300 maps). Invert G for glTF/OpenGL.
+
+### Vertex colour red and green
+
+Sampled on 4,000 models (inferred; the export does not use them):
+
+- **Red** looks like a baked shading term. It is mostly 255, about 23 on
+  average on trees, and shows soft dark blobs on ground tiles where trees
+  stand outside the model. It is about 252 on interior shaders, so it is
+  not sky occlusion alone, and a ray-cast check shows it barely follows the
+  model's own occlusion.
+- **Green** equals red on 63 % of ordinary vertices. On ground shaders it
+  works as a per-surface mask: on one street tile, grass 0, road mid grey,
+  pavement 255.
 
 ## Material presets (peds)
 

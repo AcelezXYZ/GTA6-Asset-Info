@@ -9,7 +9,7 @@
 | `core_bvh4.rpf` | BVH4 collision with packed 24-bit indices; not decoded |
 | XML, text | plain; exported as is |
 | shader cache (`shaders.rpf`) | one compiled cache, no names; layout notes in [structure/06](../structure/06-models-shaders.md) |
-| audio (AWC/ADAT) | container layout, chunk tags and Opus framing in [structure/03](../structure/03-audio-awc.md); not exported by the tool |
+| audio (AWC/ADAT) | container layout, chunk tags and Opus framing in [structure/03](../structure/03-audio-awc.md); radio stations and scheduling in [§18](18-radio.md); not exported by the tool |
 | animation (`anim.rpf`) | clip dictionaries and cutscene metadata; clip metadata decodes (confirmed); skeleton not in the clip dictionaries. See [Animation](#animation) |
 | ped body shape | presets in `common.rpf`, a control-to-input PSO and pose rigs in `anim.rpf`; the rig program runs (confirmed). See [Ped body shape](#ped-body-shape) |
 | music catalogue (`audio:/config/music.dat`) | title, artist and playlist records; title hash solved (confirmed). See [Music catalogue](#music-catalogue) |
@@ -302,4 +302,4 @@ or 2,048 buckets (confirmed).
 
 ---
 
-← [16. Road graph, junctions and flags](16-roads.md) · [Index](README.md)
+← [16. Road graph, junctions and flags](16-roads.md) · [Index](README.md) · [18. Radio station audio and scheduling](18-radio.md) →

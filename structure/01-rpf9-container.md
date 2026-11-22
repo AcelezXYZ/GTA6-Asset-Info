@@ -2,23 +2,40 @@
 
 ## Header
 
-`0x40` bytes are meaningful; the table of contents begins at `0x40`.
+The fields below occupy the first `0x40` bytes.
 
 | Off | Size | Meaning | Confidence |
 |---|---|---|---|
 | 0x00 | 4 | magic `39 46 50 52` (`"9FPR"` on disk; `RPF9` as a little-endian u32) | OBSERVED |
 | 0x04 | 4 | `toc_end` — absolute end of the table of contents; payload starts after it | OBSERVED |
 | 0x08 | 4 | varies by archive; not `toc_end`, not a count | UNKNOWN |
-| 0x0C | 4 | size of a name block inside the TOC (inferred) | INFERRED |
+| 0x0C | 4 | length field; see [Trailer](#trailer) for the observed correspondence | OBSERVED |
 | 0x10 | 8 | 64-bit per-archive value; unique across archives | OBSERVED |
-| 0x18 | 4 | constant `0x00047A00` | OBSERVED |
-| 0x1C | 4 | constant `0x00000150` | OBSERVED |
-| 0x20 | 2 | takes values 3..7 | UNKNOWN |
-| 0x22 | 2 | 1 | UNKNOWN |
+| 0x18 | 4 | `0x47A00` or `0x57A00` | UNKNOWN |
+| 0x1C | 4 | `0x150` or `0x48D0` | UNKNOWN |
+| 0x20 | 2 | observed values 3 through 8 across the two samples | UNKNOWN |
+| 0x22 | 2 | `1` or `2` | UNKNOWN |
 | 0x24 | 4 | per-archive file count (2,078 for the largest archive); **not** the carved stream count | OBSERVED |
-| 0x28 | 4 | key id — exactly **4 distinct values** across 22 archives: `0xC0A92754`, `0xD5C19F6B`, `0xD98004D5`, `0xDA72573E` | OBSERVED |
+| 0x28 | 4 | four values in the original 22-archive sample: `0xC0A92754`, `0xD5C19F6B`, `0xD98004D5`, `0xDA72573E`; two additional values below | OBSERVED |
 | 0x2C | 4 | index variant — exactly **2 distinct values** across 22 archives: `0x00090F01`, `0x00090F02` | OBSERVED |
-| 0x30 | 4 | constant `0x10` | OBSERVED |
+| 0x30 | 4 | `0x10` or `0x4790` | UNKNOWN |
+
+### `data.rpf` header observations
+
+In one Xbox `data.rpf` sample, reading little-endian fields at all 42
+4 KiB-aligned `9FPR` headers (one outer header and 41 nested headers) gives:
+
+- `0x20` takes values `4`, `5`, `6`, `7`, and `8`; `0x22` is `2` in 16
+  headers and `1` in 26.
+- The nested header at absolute offset `0x1228E000` has `0x20 = 8`,
+  `0x18 = 0x57A00`, `0x1C = 0x48D0`, and `0x30 = 0x4790`. The other 41
+  headers have `0x47A00`, `0x150`, and `0x10` at the latter three offsets.
+- `0x28` contains all four values from the original 22-archive sample plus
+  `0x5A5B4C6F` (13 headers) and `0xABE9B070` (one header). These are field
+  values, not confirmed key identifiers.
+- The bytes in `[0x40, 0x50)` are identical across all 42 headers. Extending
+  the comparison to `[0x40, 0x60)` gives 41 matches, with `0x1228E000` as
+  the exception. This does not establish the start of the encrypted entries.
 
 ### Header variants
 
@@ -56,8 +73,29 @@ the magic at 4 KiB boundaries rather than assume one header per file.
 
 ## Trailer
 
-Each archive ends with a trailer whose length is a multiple of 16, located at `EOF − length`.
-Record count `N = length / 16` is always `≥ file_count`.
+Do not require the trailer length divided by 16 to be at least the header's
+file count. Four nested headers in the same `data.rpf` sample have fewer
+16-byte units in the length field (`0x0C`) than entries in the count field
+(`0x24`). Offsets are absolute within `data.rpf`:
+
+| Header offset | `0x0C` (bytes) | `0x0C / 16` | `0x24` (entries) |
+|---|---|---|---|
+| `0x9CA000` | 160 | 10 | 11 |
+| `0xA8A000` | 160 | 10 | 12 |
+| `0xB07000` | 1,872 | 117 | 147 |
+| `0x9E13000` | 336 | 21 | 27 |
+
+The 13 nested headers with `0x28 = 0x5A5B4C6F` each have `0x0C = 0x74A0`.
+In each case a region of exactly `0x74A0` bytes starts `0x8000` bytes before
+the next aligned `9FPR` header. It begins and ends with a nonzero byte,
+has zero padding on both sides, and is followed by `0xB60` zero bytes up
+to the next header. These 13 trailer regions are byte-identical, despite
+distinct `0x10` values and distinct header-to-trailer-end lengths. For
+example, zlib streams at absolute offsets `0x11F4010` and `0x1C44010` in
+the first two members decompress to different bytes.
+
+Matching trailers do not imply identical payloads or establish a shared
+file list. Trailer record layout and semantics remain unknown.
 
 ## Open questions
 

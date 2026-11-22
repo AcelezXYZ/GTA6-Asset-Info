@@ -10,6 +10,8 @@
 | XML, text | plain; exported as is |
 | shaders (`shaders.rpf`) | compiled cache and DXBC-wrapped native shader programs. See [structure/06](../structure/06-models-shaders.md) |
 | audio (AWC/ADAT) | container layout, chunk tags and Opus framing in [structure/03](../structure/03-audio-awc.md); radio stations and scheduling in [§18](18-radio.md); exported by `sixng audio-export` ([tool](../tool/02-cli.md#audio)) |
+| UI fonts | Scaleform font libraries, DefineFont3 outlines (confirmed). See [Scaleform UI fonts](#scaleform-ui-fonts) |
+| particle effects | dictionaries, rule names, keyframe curves; rule records open. See [Particle effect dictionaries](#particle-effect-dictionaries) |
 | animation (`anim.rpf`) | clip dictionaries and cutscene metadata; clip metadata decodes (confirmed); skeleton not in the clip dictionaries. See [Animation](#animation) |
 | ped body shape | presets in `common.rpf`, a control-to-input PSO and pose rigs in `anim.rpf`; the rig program runs (confirmed). See [Ped body shape](#ped-body-shape) |
 | music catalogue (`audio:/config/music.dat`) | title, artist and playlist records; title hash solved (confirmed). See [Music catalogue](#music-catalogue) |
@@ -200,10 +202,67 @@ match the video length within one frame across the audio-bearing files.
   chunks are BCPack in another format: the top of the image decodes, the
   rest is blank) and 656 lie only in such chunks, mostly BC7.
 - **Fonts and HUD shapes**: `data/ttdb/graphics` holds single-channel font
-  glyph atlases and HUD shapes.
+  glyph atlases and HUD shapes. The UI fonts themselves are vector outlines
+  in Scaleform font libraries ([below](#scaleform-ui-fonts)).
 - **Minimap / pause map**: no tile set found in these stores or
   dictionaries. The map may be drawn from world data at runtime (not
   established). Menu layouts (which sprite goes where) are not decoded.
+
+### Scaleform UI fonts
+
+(Confirmed, 2026-11-22: all 29 fonts load and render.) The font libraries
+are GFX movies in `data.rpf`: `fontlib_efigs` (`@adf3000`, 17 fonts) and
+the Chinese, Japanese and Korean libraries at `@a3ff000`, `@a983000`,
+`@ae83000`, `@b2f2000` and `@b761000`.
+
+- Header: `GFX` (plain) or `CFX` (zlib after 8 bytes), a version byte, u32
+  length; then a RECT (nbits = first byte >> 3, size (5 + 4·nbits + 7) / 8
+  bytes), u16 frame rate, u16 frame count, then SWF tags (u16 `code << 6 |
+  len`; len 0x3F means a u32 length follows). Custom tags (code ≥ 1000) sit
+  among them.
+- **Tag 75, DefineFont3:** u16 id; u8 flags (0x80 has layout, 0x08 wide
+  offsets, 0x04 wide codes, 0x02 italic, 0x01 bold); u8 language; u8 name
+  length and name; u16 glyph count; an offset table (u16 or u32, count + 1
+  entries, the last being the code-table offset); one SHAPE per glyph (4-bit
+  fill and line bits, then edge and style records); the code table (u16
+  UCS-2); then the layout: ascent u16, descent u16, leading i16, advances
+  i16[n], bounds and kerning.
+- Units: an EM of 1024 × 20 twips, y down.
+
+Several fonts are subsets of a full font (digits only, a few icons). UI
+textures are referenced by a 64-bit `ttpf` hash with an unknown function,
+so they cannot be looked up by name; HUDs are probably drawn by script.
+
+## Particle effect dictionaries
+
+(2026-11-22.) Unnamed resources with no geometry and at least one embedded
+texture named `keyframeTexture` (R16G16B16A16_FLOAT, 16 × 4: property curves
+over a particle's life, 16 samples in 4 rows; what each row drives is
+unknown). `data.rpf` has 146.
+
+- Rule names are plain strings in the system page. The dictionary name is
+  the string that prefixes the most others with `_` (`scr_arc_tl` →
+  `scr_arc_tl_candle_flame_flare`). A dictionary can also hold rules of
+  shared sets (`MG3_blood_…`).
+- Arcade sets: `scr_arc_bb` (`@f75010`, blood), `scr_arc_st` (`@f7a010`) and
+  `ent_anm_arc_st` (`@b13010`), `scr_arc_svr` (`@f7e010`),
+  `weap_arc_tj_tracer` (`@f85010`, tracers), `scr_arc_tl` (`@f89010`,
+  candle flame, shadowy figure).
+- Open: the rule records (emitter parameters) and the sprite references.
+  The sprite sheets are not embedded, and none of the 344,561 `ttpf` hashes
+  of the 57 stores occurs in the dictionaries.
+
+## Audio game-data containers
+
+(2026-11-22.) The audio game-data bins of the minigame pack: u32 version,
+u32 data length, the data, u32 name-table length and bytes, u32 length and
+bytes, u32 count, then count × {u32 name hash, u32 offset into the data}.
+The pack's eight bins are, in archive order, `audioconfig` (64 objects),
+`curves` (65), `dynamix` (80), `game` (81), `modularsynth` (7,193), `music`
+(9 graph objects), `sounds` (4,436) and `speech` (616). Music objects do
+not reference streams by hash; their node bytecode is not decoded. The
+pack's PSOs are dialogue, zones, lights and fog, and its 787 meta resources
+are map data: no minigame tuning tables are in data files.
 
 ## Animation
 

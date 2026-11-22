@@ -244,6 +244,37 @@ brows, mouth) and red / green UV remap maps.
   per-head offsets from the base heads are in
   [§19.4](19-ped-physics-resources.md#194-head-identity-deltas).
 
+### Animals and one-bone parts (2026-11-22)
+
+- **One-bone palettes (confirmed).** A bone palette of length 1 (model
+  +0x0C = 1) marks a **rigid part**: the vertex stream has no blend weights
+  and every vertex belongs to that bone, e.g. an eagle's eyes and tongue on
+  `SKEL_Head` (`34c53e77`), and props. Palette hash 0 (the arcade boss
+  demon's lower body) is a collapsed placeholder.
+- **Animal skeletons.** An animal's **root fragment** (`crb_eagle_bald_m_00`,
+  `crb_deer_whitetailed_m_00`, `.#ft` in `packs.rpf`) holds its skeleton.
+  Its parts are the drawables named `<root>_<part>_NN[_<set>]` and are
+  skinned to that skeleton, not to the human ped skeleton (with the ped
+  skeleton, 5,155 weights stay unresolved on the eagle).
+- **Bind pose.** Animals have a 180° yaw (quaternion [0, 1, 0, 0]) on
+  `SKEL_ROOT` in the bind pose that the clips do not carry, so an animated
+  animal faces the opposite way from its bind pose.
+- **Fur placeholders.** `*_fur_NN` parts are 3-vertex stubs, each with a
+  full copy of the skeleton (white-tailed deer: 1,262 joints with fur, 296
+  without).
+- **LOD copies.** One part name occurs several times in `packs.rpf`, and
+  the first copy is not always LOD0; the largest copy is.
+- **Clips.** Animal clip dictionaries are named
+  `gameplay@creatures@<land|air>@<class>@<animal>@…`. Plain `@walk`
+  dictionaries hold unnamed clips (`clip_…`) with no bindings; for example
+  the eagle's `…@air@bird@eagle@air@flap@medium/move` and the deer's
+  `…@land@mammal@deer@normal@run@fast/move` map 91 % and 97 % of their
+  tracks to joints.
+- Arcade enemies in `packs.rpf`: `sc_slow_demon`, `sc_fast_demon`,
+  `sc_exploder_demon`, `sc_boss_demon` and `sc_alien`, with accessories
+  `schornsdemon_*`, `schelmetdemon_*`, `sc(upper|lower)accsdemon_*`,
+  `scuppergarmentdemon_*` and `sc*generic`.
+
 ## 7.6 Shaders (materials)
 
 | Off | Meaning | Confidence |

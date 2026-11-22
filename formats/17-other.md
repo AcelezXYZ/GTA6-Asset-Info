@@ -329,21 +329,27 @@ type-8 tracks (1,286,011 samples), the largest pre-normalization norm
 error was 0.00137. Keeping all four values brought all 855 shared-frame
 comparisons below a sign-invariant quaternion distance of 0.01, while
 discarding one component produced 505 mismatches above 0.5. Pad each list
-to a multiple of four u16 words. The lists end at the root-motion region. Each
-root-motion reference consumes six bytes.
-The high and low nibbles of byte `+0x1F` count position and rotation
-references. Check that the lists close at
-`0x20 + payload_size - 6 * (position_count + rotation_count)`.
-This size check passed on all tested sequences.
+to a multiple of four u16 words. Header `+0x10` points to the first
+six-byte root-motion reference: `+0x10 - 0x20` equals the end of the
+channel lists in 563 footer sequences and the payload length in 448
+sequences without footers. The high and low nibbles of byte `+0x1F`
+count position and rotation references.
 
 Each reference is `{u8 channel_kind, u8 component, u16
 parameter_word_offset, u16 frame_bit_offset}`. The parameter offset is in
 4-byte words from the start of the sequence payload; the frame offset is
-in bits from the start of a packed frame. All 2,666 references across
-498 nonempty footers matched these fields in the serialized channel
-lists. Of those, 235 matched multiple type-7 or type-8 markers, which
-consume no parameter or frame bits and can share the same offsets and
-component.
+in bits from the start of a packed frame. A group of references selects
+the complete channel list of one target-0 trajectory track. In 1,126
+groups, the position rows were `{target=0, property=0x7e58c0a0, kind=2}`
+and the rotation rows `{target=0, property=0x103ca38a, kind=0}`; the
+latter was always track-table index 0. Intersecting the candidate tracks
+across each group resolved a singleton 1,126/1,126 times, and the
+reference multiset matched the track's channel multiset.
+
+Of 3,096 references, 329 were individually ambiguous. All were kind-7
+or kind-8 markers at the end of a rotation group: markers consume no
+parameter or frame bits, so same-kind markers can share offsets. The
+group's other references identify the track.
 
 **Type 10: incremental float.** The parameter record begins with a
 `u32` size in 4-byte words (including the header), four descriptor bytes,
@@ -397,11 +403,12 @@ IK. Over frames 39-100, the left/right toe-height standard deviations
 dropped from 0.190/0.207 m with the re-anchored root to 0.005/0.001 m
 with the absolute root, keeping all non-root keys unchanged.
 
-In this example, the three position references resolve to track 36; the
-four rotation references resolve across tracks 0 and 153, which encode
-the same heading curve. The trajectory reaches 0.728 m of planar
-displacement and about 141 degrees of heading change. How the runtime
-combines it with the pose is not yet verified.
+In this example, the three position references resolve to track 36
+(`0x7e58c0a0`); all four rotation references resolve to track 0
+(`0x103ca38a`). Track 153 (`0xbd8d191d`) duplicates the heading curve but
+is not referenced by the footer. The trajectory reaches 0.728 m of
+planar displacement and about 141 degrees of heading change. How the
+runtime combines it with the pose is not yet verified.
 
 ## Ped body shape
 

@@ -107,8 +107,11 @@ Sampled on 4,000 models (inferred; the export does not use them):
 - **Red** looks like a baked shading term. It is mostly 255, about 23 on
   average on trees, and shows soft dark blobs on ground tiles where trees
   stand outside the model. It is about 252 on interior shaders, so it is
-  not sky occlusion alone, and a ray-cast check shows it barely follows the
-  model's own occlusion.
+  not sky occlusion alone. Ray-cast sky visibility does not explain it,
+  either from the model's own geometry or from the placed world around it:
+  on two ground tiles cast against every placed model within 120 m, the
+  correlation with red is about 0 (−0.02 and 0.06), and with green 0.06
+  and 0.14 (confirmed negative result).
 - **Green** equals red on 63 % of ordinary vertices. On ground shaders it
   works as a per-surface mask: on one street tile, grass 0, road mid grey,
   pavement 255.

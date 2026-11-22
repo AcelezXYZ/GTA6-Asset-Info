@@ -41,7 +41,8 @@ stubble and animal fur. Strand positions are model space, Z-up, metres,
 and line up with the ped head drawables without any transform. A curly
 fringe and a full beard sit on `head_mr1_base_000_m_full` (checked by
 eye). The bones the grooms name confirm what they cover. Across the
-family the most common are `BM_Head` (24,074 references),
+family the most common are `BM_Head` (24,074 references; 11,582 of them in
+the +0xA0 arrays, so the total probably includes the +0xB8 hashes),
 `BM_Occipitalis`, `BM_Neck1/2`, `SKEL_HEAD`, `EarRig_*`, `FACIAL_C_Jaw`,
 `BM_Chin`, `BM_L/R_Cheek`, and for animals `SKEL_Tail0..5`,
 `SKEL_*_THIGH`, `SKEL_*_CALF`.
@@ -142,11 +143,20 @@ strand s, point k: (x, y, z) = P[s][k][0..2]   # Z-up metres, model space
 
 Totals: 5.57 M guide strands and 35.3 M points.
 
+**Independent check** (a second decoder written from this page, all of
+`packs.rpf`, 2026-11-22): 20,010 grooms decode with 0 errors, 5,565,061
+strands and 35,297,629 points; every root lies inside the sys +0x30 / +0x40
+box; strand continuity has a median of 100 % per groom (40 grooms are under
+90 %). Front and side views show hair, sideburns and animal fur where
+expected. Bone hashes are lower-case joaat: the named fragment skeletons
+and head drawables name 97.4 % of the 391,179 bone references.
+
 **LODs (inferred):** neighbouring resources often hold the same groom
 with fewer strands. Where several resources in a row share the stored
 second box, S falls strictly from one to the next in 1,201 of 1,266
 cases, by a median factor of 0.60. Example: S = 141 → 85 → 52 → 31 at
-K = 26.
+K = 26. Grouping consecutive resources by an equal second box gives 18,551
+groups for the 20,010 grooms, so only a minority sit in such runs.
 
 ## 19.3 Cloth (type 2)
 

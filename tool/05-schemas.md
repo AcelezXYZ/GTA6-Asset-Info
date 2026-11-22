@@ -199,6 +199,15 @@ its placements), and `materials[]` with `shader`, `shader_class`, `class`,
 `status`, `colour_status`, `slots[]` and, for layered materials,
 `layers[]` (`status`, `affected_roles`, `surface_type`, `colour_rgba` …).
 
+
+## Grooms: `index.jsonl`
+
+One line per groom from `sixng grooms`: strand count, points per strand,
+the bones the groom follows (lower-case joaat, named where a skeleton in
+the install names them), the root box, and `lod_group` (consecutive grooms
+sharing the stored second box: probably LODs of one groom, inferred). Each
+groom's GLB holds line segments, plus scalp triangles with `--roots`.
+
 ---
 
 ← [Output layout and coordinates](04-output.md) · [Index](README.md)

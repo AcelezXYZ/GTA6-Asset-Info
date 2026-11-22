@@ -89,8 +89,8 @@ The PSO at `data.rpf@0x1c35b000` holds 1,097 handling rows of struct
 | Field | Row offset | Meaning |
 |---|---|---|
 | `93db5464` | `+0x08` | Handling name hash (lower-case joaat, e.g. `phoenix`); 301 match model names |
-| `49a01a86` | `+0x0C` | Second name hash; all 624 nonzero values resolve to another handling row by `93db5464` |
-| `41c8dec7` | `+0x10` | `{u32 count, u32 capacity, u64 pool_ref}` to an array of u64 pool references |
+| `49a01a86` | `+0x0C` | `ParentName`: second name hash; all 624 nonzero values resolve to another handling row by `93db5464` |
+| `41c8dec7` | `+0x10` | `HandlingData`: `{u32 count, u32 capacity, u64 pool_ref}` to an array of u64 pool references |
 
 Each array element addresses a component instance; use the target PSIN
 block's struct tag to decode it. All 3,481 references across 1,034 nonempty

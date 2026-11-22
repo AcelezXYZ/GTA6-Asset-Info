@@ -58,6 +58,7 @@ GTA V, used only to say what a structure corresponds to.
 
 - [17. Other formats](17-other.md)
 - [18. Radio station audio and scheduling](18-radio.md)
+- [19. Strand hair, cloth and head deltas (unnamed `packs.rpf` resources)](19-ped-physics-resources.md)
 
 Each page ends with an **Open questions** list.
 

@@ -45,8 +45,9 @@ blocks are independent.
 Consequence: `0x55` chunk sizes are exact multiples of 2,048 when the payload includes its block
 header, which is why raw size statistics show a 256-byte period rather than a 2,048-byte one.
 
-Music/multi-channel streams use 512 KiB blocks with 2,048-byte sub-blocks, selected by the
-`0x00040000` flag.
+Music/multi-channel streams use large blocks (the size is in the `0x48` chunk, e.g. 512 KiB or
+`0x1B9000`) with 2,048-byte sub-blocks, selected by the `0x00040000` flag. See
+[Music streams](#music-streams-sub-streams) for the layout.
 
 ## Format chunk (`0x76` / `0xFA`)
 
@@ -91,12 +92,34 @@ entries:
 | Off | Meaning |
 |---|---|
 | 0x00 | u32 stream id |
-| 0x04 | u32 (not a usable duration) |
+| 0x04 | u32 sample count, counting **both channels** of a stereo entry: frames = count / 2 for stereo (this is why it looked unusable as a duration) |
 | 0x08 | u16 (gain-like) |
-| 0x0A | u16 sample rate |
-| 0x0C | u8 codec id (same ids as above) |
+| 0x0A | u16 sample rate (48000) |
+| 0x0C | u8 codec id (same ids as above; 11 = Opus on music) |
 | 0x0D | u8 channel count |
 | 0x0E | u16 `0xFFFF` |
+
+### Music streams: sub-streams
+
+(Confirmed by decoding all 3,008 music streams in `audio.rpf`, 2026-11-22.)
+Each `0x48` entry is a **separate sub-stream**: its own mono or stereo Opus
+stream, time-aligned with the others (stems of one piece). Entries per
+stream: 1 in 2,958 streams, 2 in 24, 3 in 8, 4 in 13, 5 in 2, 8 in 3.
+
+The `0x55` data is `block count` blocks of `block size` bytes; the last
+block is shorter and the data ends exactly at its end (all 3,008 streams).
+Each block:
+
+1. 24 bytes per sub-stream: u32 `0xFFFFFFFF`, u32 count of 2 KiB blocks,
+   u32 0, u32 samples (both channels counted, as above), u32 0, u32 0;
+2. one u32 seek table per sub-stream: a sample position per 2 KiB block;
+3. padding to 2 KiB;
+4. each sub-stream's 2 KiB blocks in turn, packed like single-channel
+   streams (`u16 length + packet`).
+
+A sub-stream's packets run on from one block to the next. Example: stream
+`7a7f000` of the minigame pack is 288 s long; reading the sample count as
+frames gives 576 s.
 
 ## Markers chunk (`0xBD`)
 

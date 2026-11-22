@@ -48,7 +48,7 @@ differ.
 | Road graph | nodes, links, lanes, speed limits, 34 of 51 node flags, junctions, traffic-light phases | some link flags, street names |
 | Video | 515 Bink 2 files, stored uncompressed and carved by header; frame index; per-track audio packet framing | frame decoding (needs a Bink 2 decoder), original names |
 | UI graphics | 75 named dictionaries (loading screens, HUD, gauges); the UI texture store (10,013 sprite atlases, 90 % complete) | BCPack parts, menu layouts, a minimap tile set (none found) |
-| Audio | `ADAT` container, chunk tags, Opus framing, codec ids (PCM16, float32 PCM, XMA2, Opus) | a few header fields |
+| Audio | `ADAT` container, chunk tags, Opus framing, codec ids (PCM16, float32 PCM, XMA2, Opus); music streams with 1–8 Opus sub-streams (stems) | a few header fields |
 | PSO data | big-endian section headers, little-endian block table (v22 and unversioned script layouts), the `LSCH` schema (joaat field names), `LSNS` framing; 2,225 of 2,281 files in `data.rpf` decode; one serialised object graph (30,683 records) | 56 files in the older layout, `LSNS` record meanings, enums, most struct names |
 | Shaders | cache layout, shader names, native RDNA2 code spans inside DXBC wrappers | decoding to a readable form, runtime shader selection and bindings |
 

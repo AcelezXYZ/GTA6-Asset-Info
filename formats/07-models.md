@@ -238,8 +238,11 @@ brows, mouth) and red / green UV remap maps.
 - `ped_standard_muv` (clothing) and `ped_standard_head` dominate; the
   `ped_standard*_blendshape*` shaders (about 300 uses) are only on rigid
   accessories (piercings, helmets, dressings).
-- Hair, brows, lashes and beards are about 2 KB drawables with 3 vertices;
-  the real hair is built at runtime.
+- Hair, brows, lashes and beards are about 2 KB drawables with 3 vertices.
+  The strand geometry is in separate unnamed type-3 resources
+  ([§19.2](19-ped-physics-resources.md#192-strand-hair-type-3)), and the
+  per-head offsets from the base heads are in
+  [§19.4](19-ped-physics-resources.md#194-head-identity-deltas).
 
 ## 7.6 Shaders (materials)
 

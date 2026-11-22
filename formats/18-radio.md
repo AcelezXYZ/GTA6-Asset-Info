@@ -92,4 +92,4 @@ A quick check of the overlap arithmetic: two 3-second clips joined with a
 
 ---
 
-← [17. Other formats](17-other.md) · [Index](README.md)
+← [17. Other formats](17-other.md) · [Index](README.md) · [19. Strand hair, cloth and head deltas](19-ped-physics-resources.md) →

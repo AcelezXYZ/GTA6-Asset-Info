@@ -1,0 +1,267 @@
+# 19. Strand hair, cloth and head deltas (unnamed `packs.rpf` resources)
+
+*Part of the [SixNG format specification](README.md). Numbers as of 2026-11-22; confidence: confirmed / inferred / unknown.*
+
+`packs.rpf` holds 47,847 RAGE resources that carry no `name.#xx` string
+and that no other page of this specification covers: not drawables,
+fragments, bounds, navmesh tiles or clip dictionaries. Together they
+inflate to 3.13 GB, about 32 % of the archive. This page splits them
+into families and decodes three of them in full: strand hair, verlet
+cloth and per-head identity deltas.
+
+## 19.1 Family split
+
+All of them are ordinary resources ([§2](02-resources.md)): a system page,
+the page map pointer at +0x08 and in some cases one graphics buffer. The
+byte at **+0x1A** is a type, and the u32 at **+0x1C** is either 0 or the
+constant **`7d8f3db3`**. Types 1, 2, 3, 4 and 5 all use that constant.
+Its name is not known.
+
+| Family | Key | Count | Inflated | Share | State |
+|---|---|---|---|---|---|
+| strand hair / fur | type 3, `7d8f3db3`, one GPU buffer (flags 0x1380) | 20,010 | 1,083 MB | 34.6 % | **decoded** ([19.2](#192-strand-hair-type-3)) |
+| verlet cloth | type 2, +0x1C = 0, no GPU buffer | 12,364 | 401 MB | 12.8 % | particles and edges **decoded** ([19.3](#193-cloth-type-2)) |
+| soft body | type 2, `7d8f3db3` | 702 | 39 MB | 1.2 % | same layout as cloth |
+| head identity deltas | 240-byte system page, one 0x1601 buffer, base-head hash at +0x58 | 6,758 | 316 MB | 10.1 % | **decoded** ([19.4](#194-head-identity-deltas)) |
+| type 5 (collision primitives?) | type 5 | 6,388 | 6 MB | 0.2 % | partly ([19.5](#195-other-families)) |
+| type 1 | type 1 | 480 | 1 MB | 0.04 % | names only |
+| `F` payloads | type 0, 176-byte system page, one 0x1380 buffer, u64 key at +0x20 | 490 | 1,273 MB | 40.7 % | layout only ([19.5](#195-other-families)) |
+| `E` headers | {u32 n, u32 n, ptr} at +0x10, u64 key at +0x48 | 546 | 8 MB | 0.3 % | layout only |
+| other | | 109 | 1 MB | | |
+
+Resources of one family sit together in the archive. The head delta
+runs follow their head drawables (one run after each `head_<class>_*`
+group). Hair, cloth and the other families come after the last named
+resource.
+
+## 19.2 Strand hair (type 3)
+
+Each resource is one **guide-strand groom**: hair, beards, brows, lashes,
+stubble and animal fur. Strand positions are model space, Z-up, metres,
+and line up with the ped head drawables without any transform. A curly
+fringe and a full beard sit on `head_mr1_base_000_m_full` (checked by
+eye). The bones the grooms name confirm what they cover. Across the
+family the most common are `BM_Head` (24,074 references),
+`BM_Occipitalis`, `BM_Neck1/2`, `SKEL_HEAD`, `EarRig_*`, `FACIAL_C_Jaw`,
+`BM_Chin`, `BM_L/R_Cheek`, and for animals `SKEL_Tail0..5`,
+`SKEL_*_THIGH`, `SKEL_*_CALF`.
+
+The spec has said that hair is "built at runtime" from 3-vertex
+placeholder drawables ([§7.5](07-models.md#ped-heads-face-textures-confirmed)).
+The geometry is in these resources. No direct link from a placeholder
+drawable to its groom has been found (no shared hash, see open
+questions).
+
+### System page
+
+| Off | Type | Meaning | Confidence |
+|---|---|---|---|
+| 0x00 | u64 | 0 | confirmed |
+| 0x08 | ptr | page map | confirmed |
+| 0x10 | ptr | 0x10-byte block, or 0 (non-zero on 526 resources) | layout confirmed, meaning unknown |
+| 0x19 | u8 | flags (0x00, 0x80, 0x81 …) | unknown |
+| 0x1A | u8 | type = 3 | confirmed |
+| 0x1C | u32 | `7d8f3db3` | confirmed |
+| 0x20 | u32 | flags; the same value is at gfx +0x74 (1,500/1,500) | confirmed (copy) |
+| 0x30, 0x40 | vec4 ×2 | **root bounding box** min / max. w = ∓ root radius | confirmed: 100 % of strand roots inside |
+| 0x50, 0x60 | vec4 ×2 | second box (FLT_MAX / −FLT_MAX when empty). 92 % of points are inside it | inferred |
+| 0x70 | ptr | buffer descriptor (0x40 bytes, as [§7.1](07-models.md#71-buffer-descriptor-system-page): +0x08 size in dwords, +0x10 flags 0x1380, +0x18 graphics pointer, +0x28 pointer to a 0x20-byte block) | confirmed |
+| 0x78 | u64 ×3 | 64-bit hashes; zero on 99.7 % | unknown |
+| 0x98 | u32 n, u32 cap | | confirmed |
+| 0xA0 | ptr | **u32[n] bone joaat hashes** (the bones the groom follows) | confirmed (names resolve) |
+| 0xA8 | u32 n, u32 cap | | confirmed |
+| 0xB0 | ptr | n × 12-byte part records {u16, u16, u32, u32}. The first record repeats +0xD0..+0xDB | layout confirmed |
+| 0xB8 | u32 ×4 | bone joaat hashes | inferred |
+| 0xD0 | u32 ×2 | counts | unknown |
+| 0xDC | u16 T, u16 S | root-triangle count, guide-strand count (equal to gfx +0x5A / +0x58 on 1,500/1,500) | confirmed |
+| 0xE0–0x13F | f16 / u8 | groom parameters. 0x110 is a u8[16] profile, often 0xFF→0x00 (a taper) | inferred |
+
+The header, descriptor, 0x20 aux block, bone array, part records and
+page map **tile the whole system page** on all 20,010 resources.
+
+### Graphics buffer
+
+A 0xC0-byte header followed by typed sections. S = guide strands,
+K = points per strand, T = root triangles.
+
+| Off | Type | Meaning | Confidence |
+|---|---|---|---|
+| 0x00 | u32[8] | section offsets A0–A7 (0 = absent) | confirmed |
+| 0x20 | u32 ×3, u32 | 0, 0, 0, 0xFFFFFFFF | confirmed |
+| 0x30 | u32[8] | section offsets B0–B7 | confirmed |
+| 0x50, 0x54 | u32 ×2 | 0x4E8 on most resources; ? | unknown |
+| 0x58 | u16 | **S** | confirmed |
+| 0x5A | u16 | **T** | confirmed |
+| 0x5C | u32 | **K** (2–50; 3 on 5,001 resources, 30 on 1,690) | confirmed |
+| 0x60 | f16 ×6, u8 ×4 | parameters | unknown |
+| 0x74 | u32 | copy of system +0x20 | confirmed |
+| 0x80 | u32 ×4 | small counts (0–7) | unknown |
+| 0x90 | u8[16] | monotonic lookup table | inferred |
+| 0xA8 | u32 | 3 | inferred: records per tail group |
+| 0xAC | u32 | offset of the tail records, or 0 | confirmed |
+| 0xB0 | u32[4] | section offsets Q0–Q3 | confirmed |
+
+Sections. Each starts on a 4-byte boundary. Sizes are exact up to that
+padding.
+
+| Section | Size | Contents | Confidence |
+|---|---|---|---|
+| **B5** | S × K × 8 | **points: 4 × f16 (x, y, z, w)**, strand-major. w is non-zero at the root on 99.6 % of strands (thickness or mass) | xyz confirmed; w inferred |
+| **B4** | T × 6 | **root triangles: 3 × u16 strand indices** (all < S) | confirmed |
+| **B0** | S × 2 | **f16 strand length** (equals the polyline length to 2 % on 98 % of resources) | confirmed |
+| A2 | S × 4 | 2 × f16, in 0..1 on 73 % (root UV?) | inferred |
+| A0, A1, A3 | S × 4 | per-strand u32 | unknown |
+| A4, A5, A7 | S × 8 | per-strand 8 bytes | unknown |
+| A6 | S × 12 | per-strand 12 bytes | unknown |
+| B1 | S × K × 4 | per point, 2 × f16 | unknown |
+| B2 | S × K × 2 | per point, f16. Not the arc length | unknown |
+| B3 | S × (K − 1) × 4 | per segment | unknown |
+| B6 | T × 4 | per triangle, 4 × u8 | unknown |
+| B7 | T × 1 | per triangle, u8 | unknown |
+| Q0, Q2, Q3 | S × 4 | per strand | unknown |
+| Q1 | 4 | u32 | unknown |
+| (implicit, after the last table section, on 26 % of resources) | 2 × S × 4 + 8 + 4n | two per-strand u32 arrays, then a 2 × f16 range and n × {f16 value, u16 monotonic 0..0xFFFF} | inferred |
+| tail (offset at 0xAC) | 4 × (multiple of 3) | records {u24 index, u8 weight}. The record count is always a multiple of 3, and the three weights sum to 255 on 62 % of resources (render strands interpolated from guides?) | inferred |
+
+Decoding the points:
+
+```
+P = f16[S][K][4] at gfx + B5
+strand s, point k: (x, y, z) = P[s][k][0..2]   # Z-up metres, model space
+```
+
+**Checks over all 20,010 resources**:
+
+- the typed sections tile 100.0 % of the 902,231,288 buffer bytes, with
+  no gaps or overlaps. Another 170 MB of page padding after the buffer
+  is not counted;
+- the system pages are 100.0 % tiled (11,121,744 bytes);
+- 99.9 % of strands are continuous: no segment is longer than 4 × the
+  strand's median segment;
+- 100 % of roots are inside the root box.
+
+Totals: 5.57 M guide strands and 35.3 M points.
+
+**LODs (inferred):** neighbouring resources often hold the same groom
+with fewer strands. Where several resources in a row share the stored
+second box, S falls strictly from one to the next in 1,201 of 1,266
+cases, by a median factor of 0.60. Example: S = 141 → 85 → 52 → 31 at
+K = 26.
+
+## 19.3 Cloth (type 2)
+
+Verlet cloth: flags, canopies, awnings, tarps (1–6 m across) and garment
+pieces. The soft-body variant (+0x1C = `7d8f3db3`, 702 resources) uses
+the same layout. It names body helper bones (`BM_pelvis`, `BM_Stomach`,
+`SEC_*_Full_Breast`, `GM_U01_C_Spine4_LF`, `MH_*_HipFront` …); this is
+the soft-body data that [§17](17-other.md#ped-body-shape) mentions.
+Hashes inside the cloth resources include `default` and `Legacy`
+(tuning profiles) and garment names such as
+`Gmt_Jacket_Blazer_F_Hang_01b`.
+
+| Off | Type | Meaning | Confidence |
+|---|---|---|---|
+| 0x08 | ptr | page map | confirmed |
+| 0x1A | u8 | type = 2 | confirmed |
+| 0x1B | u8 | varies (0, 127, 231, 50 …) | unknown |
+| 0x20 | u32, u32 | `0x8000000x` flags, 0x16 | unknown |
+| 0x28 | ptr, u16 n, u16 cap | **particles: n × (f32 x, y, z, w)**. w is per-particle (e.g. 2.9–13.4), probably mass | xyz confirmed |
+| 0x38 | ptr, u16 m, u16 cap | **edges: m × {u16 a, u16 b, f32 rest length, f32, u32 flags}** | confirmed |
+| … | {u32 n, u32 cap, ptr} arrays | per-particle 22- and 40-byte records, u16 and u32 index lists, a 400-byte block. A second particle / edge pair follows at +0x2C8 / +0x2D8 | layout inferred |
+
+**Checks over all 13,066 resources:**
+
+- all decode, and edge indices are < n on 100 %;
+- the edge rest length equals the distance between its two particles in
+  the stored pose (within 1 mm + 0.1 %): median 85 % of a resource's
+  edges for cloth and 97 % for soft bodies. ≥ 50 % of edges match on
+  91.9 % of cloth and 96.4 % of soft-body resources;
+- totals: 1.00 M particles and 4.45 M edges.
+
+A soft-body cage drawn from its edges shows a ring-and-cross-brace
+lattice around the hips (stretch, shear and bend constraints).
+
+Typed so far: particles + edges are 20 % of cloth system bytes and 17 %
+of soft-body bytes. The rest is mapped only as arrays of known element
+size.
+
+## 19.4 Head identity deltas
+
+One resource per head drawable **per LOD**. Each stores, for every
+vertex of the class's base head, the offset from the base head to that
+head:
+
+```
+head_vertex = base_vertex + delta
+```
+
+Example: `head_fr1_afr_000_m_full` minus `head_fr1_base_000_m_full`.
+
+| Off | Type | Meaning | Confidence |
+|---|---|---|---|
+| sys 0x08 | ptr | page map (0x500000D0) | confirmed |
+| sys 0x10 | ptr | 0x50000070 → buffer descriptor at 0x70 (flags 0x1601, as a mesh blob) | confirmed |
+| sys 0x58 | u32 | **joaat of the base head drawable**: `head_fr1_base_000_m_full` (`9d2a8e38`), `head_mr1_base_000_m_full` (`7632be11`), `…_lod2`, `…_lod3`; `fo1`, `fb1`, `mo1`, `mb1`, `mi1`, `mk1` likewise. The LOD1 names are not resolved (e.g. `45817e90`, `8968a63b`) | confirmed |
+| sys 0x5C | 12 bytes | often ASCII `0,0.00000,0.` | unknown |
+| gfx 0x00 | u32 | 1 | confirmed |
+| gfx 0x04 | f32 × 3 | base (minimum delta) | confirmed |
+| gfx 0x10 | f32 × 3 | step | confirmed |
+| gfx 0x1C | u32 | 0 | confirmed |
+| gfx 0x20 | u64 × V | delta, quantised exactly like mesh-blob positions ([§7.2](07-models.md#72-mesh-blob-vertex-buffer)): x and y 24-bit, z 16-bit | confirmed |
+
+V is 8,983 (8,988 for `mo1`), 2,958, 1,680 or 599: LOD0 to LOD3 of the
+head. The 1,626 heads have one delta for each of LODs 1–3, and 1,877
+LOD0 deltas. Deltas are within ±1.5 cm.
+
+**Vertex order.** Deltas are in one fixed vertex order per base
+topology. That order is not the stored order of any head drawable,
+because each head's vertex buffer is reordered on its own. Match
+vertices by (UV, position) against the base head to apply them.
+
+**Checks over all 6,758 resources:**
+
+- 100 % have the fixed system layout, a buffer of 0x20 + 8V bytes and
+  zero page padding;
+- deltas are in archive order of the heads (alphabetical);
+- for **1,208 of 1,626 heads**, the LOD1 deltas equal (exported head −
+  base head) with a median error of 2.5 µm, at the quantisation level.
+  The other 418 have no exported head drawable of that class to compare
+  against.
+
+## 19.5 Other families
+
+- **Type 5** (6,388 resources, 5,561 with `7d8f3db3`): 0.6–2 KB. They
+  hold f32 boxes or capsules, such as half-extents (2.01, 0.29, 0.10)
+  with mirrored minima, and bone names `BM_Head`, `PH_Glasses`,
+  `HatBandTilt`, `SKEL_L/R_FOOT`, `Forehead`, `Nose`. Probably collision
+  primitives for hair and cloth (inferred).
+- **Type 1** (480): bone lists of whole skeletons, including animal
+  tails (`SKEL_ROOT`, `SKEL_*_HAND`, `SKEL_Tail0..5`). Unknown.
+- **`E` + `F` pairs** (546 + 490, 1.28 GB): an `E` system page names an
+  `F` payload by a u64 key (E +0x48 = F +0x20). All 449 distinct `F`
+  keys are named by an `E`. F +0x28 is the payload size in bytes, and
+  the payload sits in a 0x1380 buffer.
+  - `E` holds two padded counts at +0x38/+0x3C and +0x40/+0x44 (e.g.
+    222/224 and 512/512) and a list of records. Some values have the
+    form `offset << 8 | format`, as in the mesh-blob stream table
+    (formats 0x03, 0x83).
+  - Small `F` payloads (≈ 6 KB) are op-code streams.
+  - Large ones (1–17 MB) start with a u32 index table (e.g. 4,288
+    entries < 3,861), followed by rows of f16 coefficients that fall in
+    magnitude.
+  - Meaning unknown.
+
+## Open questions
+
+- The groom ↔ placeholder drawable link (`hair*`, `beard*`, `brows*`
+  3-vertex drawables). No shared joaat or 64-bit hash was found. It is
+  probably resolved by file name through the encrypted TOC.
+- The meaning of hair sections A0/A1/A3–A7, B1–B3, B6, B7, Q0–Q3; the
+  tail weights; render-strand generation.
+- The name of `7d8f3db3`, and of the LOD1 base-head hashes.
+- The cloth per-instance structures after the first particle/edge pair.
+- What the `E`/`F` pairs are (40.7 % of the unnamed bytes).
+
+---
+
+← [18. Radio station audio and scheduling](18-radio.md) · [Index](README.md)

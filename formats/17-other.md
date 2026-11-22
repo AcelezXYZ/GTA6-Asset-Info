@@ -602,7 +602,8 @@ slims (checked by eye on a female top).
 Related: about 210 resources in `packs.rpf` with hashed `GM_U01_*` bone
 references are soft-body / secondary-motion data, not body shape: particles
 (x, y, z, w with w 400–3000) and edges {u16 a, u16 b, f32 rest length, f32,
-u32 flags} (inferred).
+u32 flags} (inferred). They are the soft-body variant of the cloth
+resources in [§19.3](19-ped-physics-resources.md#193-cloth-type-2) (702 resources).
 
 Open: the exact 0x46 / 0x81 ops, the lower-LOD rigs, the input names, and
 why the belly spikes on some male T-shirts whose palettes name bones in

@@ -21,6 +21,7 @@ carries `note` fields explaining itself; unknown fields are kept by hash.
 | `drawable` | parsed structure: `models[]`, `shaders[]`, `skeleton[]` (node, parent, `pivot`, `bind_matrix`), `bounds` |
 | `materials[]` | per shader: `shader`, `shader_name_hash`, `shader_name` (the game's shader name, e.g. `standard_vehicle_2lyr`; added 2026-11-21), `classification`, `base_color`, `normal`, `normal_green`, `textures[]` (each slot with `param_name` where known, e.g. `diffusetex`), optional `texture_fallback`, a `paint` block on car paint, and a `multilayer` block on two-layer blend shaders |
 | `buffer_files`, `texture_files` | written files |
+| `head_skin` | ped heads (added 2026-11-21): the face used, `linked` (a preset names the head) or `auto`, its index and count, and the texture hashes |
 | `skin_used` and the skin's bones | ped clothing (added 2026-11-21): which skin was written (the bone palette joined to the shared ped skeleton when at least 90 % of the palette resolves), its bones, and any unresolved joints. The shared skeleton is read from `packs.rpf`, so index `packs` first. GLBs get `JOINTS_1` / `WEIGHTS_1` for the second four influences. Ped clothing exported before this date is wrongly skinned; re-export it |
 
 `classification` = `{class, render_bucket, alpha_mode, instanced_or_batch_lod, family, record_flags, decal}`;

@@ -201,6 +201,33 @@ slot 9 reads as 4 × u32 joint indices (up to 50 on a protagonist head),
 slot 8 as 4 × (u16, u16) with plausible joints in the low halves, and
 slots 6 + 7 weights sum to 255 on every vertex (inferred; not decoded).
 
+### Ped heads: face textures (confirmed)
+
+Head drawables (`ped_standard_head`) **bind no textures**, and every head
+shares one UV layout: the face in the middle, the ears at the sides and a
+teeth and gums strip along the bottom. The face comes from a material
+preset ([§12](12-materials.md#material-presets-peds)):
+
+- a face preset (Category `378ad10c`) whose tag map lists the head
+  (key `4bfd27dd`, joaat of the full head drawable name) is that head's
+  face;
+- its "base" parameter holds the **albedo in slot `ead733fc`** (1024² BC1
+  sRGB) and a **BC5 normal map in slot `d689b17f`**.
+
+Example: `cs_jada_watts_head_fr1_afr_000_y_full` (`eb9b7bee`) → albedo
+`4aedb007f2b1ca3d`, normal `7742ffa7e241bd32`.
+
+| | Heads |
+|---|---|
+| all head drawables | 1,657 |
+| with a face through a preset (897 drawables tagged) | 893 |
+| crowd heads `hc_*`: tagged, but by presets with empty texture slots | — |
+| `a_head_base_*` and some `cs_*` heads (e.g. `cs_lucia`): not tagged in `packs.rpf` (perhaps in `story000.rpf`, not checked) | — |
+
+About 1,000 face albedos are ordinary textures in the `ttdb_peds_*_3`
+stores. `peds_loose.ttpf` holds clothing patterns, head-space masks (beard,
+brows, mouth) and red / green UV remap maps.
+
 **Body shape** moves helper bones of the shared skeleton through a rig
 ([§17](17-other.md#ped-body-shape)). Other ped facts:
 
@@ -243,6 +270,8 @@ pointer leads to a 32-byte texture reference: ptr, **u64 texture hash**
 - Normal top 12 bits; slots 12, 13, 17.
 - The parent bone of the `GM_U01_*` helpers; the head skin format (0x8c);
   palette bones found in neither skeleton.
+- The face of heads no preset lists (`a_head_base_*`, some `cs_*`), and of
+  crowd heads whose presets have empty slots.
 - Occluder and water-vegetation LOD buffers (another format).
 - Shader constant-buffer layout (would give cable thickness, paint and
   material constants).

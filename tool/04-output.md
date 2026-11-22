@@ -61,6 +61,7 @@ The work folder holds the indexes that later steps pick up:
   index/lod_parents.jsonl             lod-links: per map file, entity index → parent
   index/interior_entities.jsonl       interior-entities: space and membership per non-world file
   names/names.json                    names: hash → name dictionary
+  index/head_skins.json               head → face table (built from the packs index, ~5 s)
 ```
 
 ## Coordinates

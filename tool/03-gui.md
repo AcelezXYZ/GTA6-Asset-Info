@@ -63,6 +63,10 @@ older `gui_cache_v*` folders can be deleted.
   listed, and the paint-colour lists show as swatches with their shares.
   Rims and tyres are sized as 1.625 × `wheelScale`, front and rear
   separately (a fitted factor).
+- **Hair and fur (grooms)** panel: no resource links a groom to a ped, so
+  pick grooms by body region and bone; they show on the current model with
+  a chosen width and colour (`--hair HEX,…` and `--hair-width MM` for
+  screenshots; added 2026-11-22).
 - **Head skin ◀ n / N ▶** (ped heads) switches through the faces; the
   **Head skin** field picks the face for exports (`--head-skin`).
 - **Body shape** field (ped clothing): the same controls as

@@ -245,20 +245,35 @@ by codec ([structure/03](../structure/03-audio-awc.md)):
 Stream names are 29-bit hashes and are not recovered; streams are listed by
 bank offset and stream id.
 
-### Strand hair (grooms)
+### Hair, cloth and head deltas
 
 ```powershell
-# Every strand groom in packs.rpf as a GLB of line segments (~0.8 GB, under a minute)
+# Every strand groom in packs.rpf as a GLB of lines (~0.8 GB, under a minute)
 sixng grooms packs --out work/out/grooms
-# Also the scalp triangles between strand roots
-sixng grooms packs --out work/out/grooms --roots
+# Crossed ribbon meshes instead of lines (width in mm; render in any viewer),
+# scalp triangles between the roots, some grooms only, or just the catalogue
+sixng grooms packs --out work/out/grooms --ribbons 0.5 --roots --only 10950d010,f14aa010
+sixng grooms packs --out work/out/grooms --list
+# Cloth and soft bodies: particles and constraint edges as GLB lines (~30 s)
+sixng cloth packs --out work/out/cloth
+# Head identity deltas; --build writes the heads that exist only as deltas (~40 s, 0.5 GB)
+sixng head-deltas packs --out work/out/head_deltas --build
 ```
 
-20,010 grooms (hair, beards, brows, lashes, stubble, animal fur;
-[§19.2](../formats/19-ped-physics-resources.md#192-strand-hair-type-3)),
-one polyline per guide strand, in model space so they sit on their ped or
-animal. Which groom belongs to which ped is not known yet. Cloth and head
-deltas are not exported. Added 2026-11-22.
+- **Grooms** (20,010; [§19.2](../formats/19-ped-physics-resources.md#192-strand-hair-type-3)):
+  one polyline per guide strand in model space, so they sit on the head
+  drawables. Lines carry the point width (`_WIDTH`) and the root UV
+  (`TEXCOORD_0`; both inferred). `--list` writes `catalog.json`. No
+  resource says which groom belongs to which ped.
+- **Cloth** (13,067; [§19.3](../formats/19-ped-physics-resources.md#193-cloth-type-2)):
+  both particle / edge sets of each resource.
+- **Head deltas** (6,757; [§19.4](../formats/19-ped-physics-resources.md#194-head-identity-deltas)):
+  each delta matched to its head; `--build` writes the 673 heads that have
+  deltas but no drawable (the base head moved by the delta, or the head's
+  own drawable where the name follows from the order). They are
+  untextured: the base heads have no colour texture in the install.
+
+All added 2026-11-22.
 
 ### Research helpers
 

@@ -300,6 +300,13 @@ a normal map in the install, no colour texture.
   with mirrored minima, and bone names `BM_Head`, `PH_Glasses`,
   `HatBandTilt`, `SKEL_L/R_FOOT`, `Forehead`, `Nose`. Probably collision
   primitives for hair and cloth (inferred).
+  **Box volume sets** (2026-11-23): type byte 5 at 0x1A (cloth is 2) with
+  tag `7d8f3db3` at 0x1C; entries are 0x90 bytes: centre (vec3), rotation
+  quaternion xyzw, half extents at +0x50 and the value 70 at +0x5C
+  (meaning unknown). High: 8 sets in the minigame pack decode and their
+  wireframes fit the models. A group hash map at +0x40 uses a Swiss-table
+  layout (16 control bytes, then 24-byte slots; medium); what the groups
+  select is unknown.
 - **Type 1** (480): bone lists of whole skeletons, including animal
   tails (`SKEL_ROOT`, `SKEL_*_HAND`, `SKEL_Tail0..5`). Unknown.
 - **`E` + `F` pairs** (546 + 490, 1.28 GB): an `E` system page names an

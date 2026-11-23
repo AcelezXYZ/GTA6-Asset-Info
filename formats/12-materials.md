@@ -387,7 +387,8 @@ packs' own models). They make up about 139 K references in a full map
 export; `1e2c9340e14a7d07` and `aa3eeff23a15dc75` are probably
 engine defaults (inferred). A survey of 3,375 models (2026-11-23) finds 715
 base-colour slots over 79 further unresolved hashes: `a800afccf01aa36b` on
-nearly every vehicle's `standard_vehicle_emissive_layer` (321 slots),
+nearly every vehicle's `standard_vehicle_emissive_layer` (321 slots; a
+runtime screen overlay, [§11](11-vehicle-paint.md#vehicle-shaders-2026-11-22)),
 `45fecd22c2d1ef69` on ped heads, `1e2c9340e14a7d07` on batch LODs and
 terrain decals, `32de36bd78efc4e4` and `a8a97b37c9e0af76` on airport
 buildings; probably more defaults or runtime-bound textures (not

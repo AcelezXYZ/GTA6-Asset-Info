@@ -42,6 +42,23 @@ median child–parent distance is 0.47 m, 80 % of named pairs share a name
 prefix (`x` → `x_lod` → `x_slod`). Of 2,089 files with a parent hash, 1,304
 resolve.
 
+### Coverage gaps near the camera (2026-11-23)
+
+Found while streaming the map in a 3D viewer:
+
+| Finding | Confidence |
+|---|---|
+| **Unlinked SLODs cover their area alone.** Many SLOD placements (SLOD4 ground tiles especially) have no LOD parent or child link. With plain distance bands they vanish inside their own band and nothing finer replaces them, leaving holes next to the camera (downtown: about 33 such placements near the camera at low detail, 71 at high) | high |
+| **Placements with empty archetypes.** Some placements resolve to no model name, with render flags `0x41` (one at lod 0 with `lodDist` 171, one at lod 1 with `lodDist` 450, both with a 1 m placeholder radius); they look like the real ground pieces for those spots, so only coarse SLOD ground covers them | medium (a few spots, not counted map-wide) |
+| **Large buildings without a main HD placement.** Some downtown towers have only detail, canopy or roof-detail parts in the placements, so only the SLOD box shows close up | medium (one tower checked in depth) |
+| **SLOD textures are whole-area atlases.** A SLOD base texture (256–512 px) is a mosaic of tiny facade and ground patches for a whole area; at 64 px it averages to near-white. Its texel density is far below HD, so a streamer should size it by distance to the placement's edge, not its centre | high |
+| **SLOD materials with no texture.** Several SLOD4 materials have no base texture and base-colour alpha 0 (placeholders) | high |
+| **Building glass carries only a dirt layer.** Glazing materials (glass / window class) hold only a light grime texture; reflections and interiors are added at runtime, so drawn as a see-through texture they read as grey or missing buildings | high |
+
+Open: where the missing ground and building archetypes live (another map
+file, an interior or streaming set), and how the game fills these areas
+near the player.
+
 ### Archetype LOD distances (confirmed)
 
 The archetype definition (`82d6fc83`, [§9.4](#94-archetype-definitions-and-unnamed-drawables))

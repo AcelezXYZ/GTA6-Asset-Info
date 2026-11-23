@@ -246,9 +246,10 @@ so they cannot be looked up by name; HUDs are probably drawn by script.
 ## Particle effect dictionaries
 
 (2026-11-22.) Unnamed resources with no geometry and at least one embedded
-texture named `keyframeTexture` (R16G16B16A16_FLOAT, 16 × 4: property curves
-over a particle's life, 16 samples in 4 rows; what each row drives is
-unknown). `data.rpf` has 146.
+texture named `keyframeTexture` (R16G16B16A16_FLOAT, 16 × 4, 16 samples in
+4 rows). It was first read as property curves over a particle's life; later
+decoding says it is **not** a set of life curves (the life curves are the
+keyframe properties below), so what it holds is open. `data.rpf` has 146.
 
 - Rule names are plain strings in the system page. The dictionary name is
   the string that prefixes the most others with `_` (`scr_arc_tl` →
@@ -260,8 +261,48 @@ unknown). `data.rpf` has 146.
   candle flame, shadowy figure).
 - Open: the rule records (emitter parameters) and the sprite references.
   The sprite sheets are not embedded, and none of the 344,561 `ttpf` hashes
-  of the 57 stores occurs in the dictionaries. *(Later decoding reports
-  sprite slots per rule, below; the two have not been reconciled.)*
+  of the 57 stores occurs in the dictionaries. *(Later decoding resolves
+  particle sprites to the effects texture store and reports sprite slots
+  per rule, below, so the earlier search probably missed them; not
+  reconciled in detail.)*
+
+### Rule tables
+
+(Offsets measured on the arcade dictionaries; property names confirmed by
+hash; units unverified.)
+
+- **Root** (system page +0): +0x10 dictionary name; +0x20 texture /
+  drawable table (unused); +0x28 effect rules, +0x30 emitter rules, +0x38
+  particle rules. Each table has a hash array at +0x20 (joaat of the rule
+  name), u32 count | capacity << 16 at +0x28 and a pointer array at +0x30.
+- **Effect rule** (0x240 B): +0x18 f32 (4.2 on every arcade effect), +0x20
+  name, +0x38 event array (u16 count at +0x40; an event has its emitter rule
+  at +0x50 and particle rule at +0x58), +0x48 evolution list ("LOD",
+  "intensity"), floats at +0x98..+0xB8, and keyframe properties at
+  +0xB8 + 0x40·i: colourTintMin, colourTintMax, zoomScalar, dataSphere,
+  dataCapsule.
+- **Emitter rule** (0x300 B): +0x18 f32, +0x1C own hash, +0x20 name; ten
+  keyframe properties at +0x40 + 0x40·i, the same in every emitter:
+  spawnRateOverTime, spawnRateOverDist, particleLife, playbackRateScalar,
+  speedScalar, sizeScalar, accnScalar, dampeningScalar,
+  matrixWeightScalar, inheritVelocity.
+- **Keyframe property** (0x40 B): +0x10 key list, +0x18 u16 count | u16
+  capacity, +0x30 id hash (stored twice). **Key** (0x20 B): time 0..1 at +0,
+  1 / (time − previous time) at +4, value vec4 at +0x10 (min / max in x / y
+  for ranged properties).
+- **Property id = joaat(lower("`<class>:m_<member>KFP`"))**. Behaviour
+  properties resolve for ptxu_Acceleration, Size, Rotation, Dampening,
+  MatrixWeight, ZCull, AnimateTexture, Decal, Light, Attractor, FogVolume
+  and ptxd_Trail; ptxu_Velocity:m_angleKFP = `2abaae94`. ptxu_Colour has
+  emissiveIntensity plus five unresolved ids (`e7851995`, `c1444d14`,
+  `6dfba680`, `a0930bb2`, `d24def27`).
+- **Particle rule** (0x430 B): +0x178 name, +0x188 behaviour pointer list
+  (u16 count at +0x190; behaviours carry keyframe properties at +0x40·k,
+  their type hashes resolve to no known name), +0x388 keyframe texture
+  (null on about 7 %). +0x248..+0x2E8: four {pointer, short half-float
+  string, u32 pair} records (shader variables?); +0x300..+0x360 sparse
+  64-bit values, probably the sprite references; +0x370 a list (u16 count
+  at +0x378) of shared hashes, probably shader / technique ids (guesses).
 
 **Which game each arcade set serves** (2026-11-23; from effect names; high
 for four, medium for `scr_arc_st`): `scr_arc_bb` = the hunting game,

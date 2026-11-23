@@ -424,6 +424,26 @@ byte is its class.**
     role is unknown).
   - Randomized, sequential and class-8 sounds end with u8 n, n child
     references. A wrapper's last 12 bytes are child, u32, reference.
+  - **Child references of more classes** (2026-11-23; offsets from the
+    start of the class body, which begins where the header ends;
+    `0xffffffff` = none):
+
+    | Class | Child references | Confidence |
+    |---|---|---|
+    | 15 | 6 bytes, u8 k, k bytes, u8 n, then n × (u32 child, f32 mostly 1.0, u8) | high (70 of 70) |
+    | 1 | at 6 | medium-high |
+    | 2 | at 56 | medium-high |
+    | 5 | at 0, 4 and 8 | medium-high |
+    | 16 | at 15 | medium-high |
+    | 20, 27 | at 0 | medium-high |
+    | 28 | at 0 and 4 | medium-high |
+    | 30 | at 0 and 25 | medium-high |
+    | 48 | at 0 and 8 | medium-high |
+
+    The fixed offsets read as valid indices on every object of each class
+    (5–34 per class) and point at sound classes; together they add 393
+    graph edges, so non-simple sounds that reach a wave rise from 2,002 to
+    2,228 of 2,385.
 - **Sound header** (every class except 17, 49, 56 and 57; high: 4,392 of
   4,395 headers decode, each simple sound's container starts where its
   header ends, 2,051 of 2,051, and 2,015 of 2,016 wrappers then have
@@ -432,8 +452,10 @@ byte is its class.**
   2-bit tristate flags; (2,4), (2,5), (3,2), (4,5) and (5,3) are 4 bytes;
   (3,7), (4,2) and (4,7) are 1 byte; the rest 2 bytes. (0,0) and (0,2) are
   nested u8 masks whose u16 values come after all other header fields.
-- Open: field meanings ((1,2) looks like a volume in mB), most other class
-  bodies, and the other schemas (game objects, speech and others use a
+- Open: field meanings ((1,2) looks like a volume in mB), the other body
+  fields, the references of classes 3, 9, 10, 19, 24, 29, 31, 36, 40, 41
+  and 46 (too few samples), the headerless classes 17, 49, 56 and 57, and
+  the other schemas (game objects, speech and others use a
   different header).
 
 ## Animation

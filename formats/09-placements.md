@@ -103,6 +103,15 @@ and a batch centre; instance arrays sit in the graphics page.
 906,922 batches: 24,880,278 prop and 219,484,128 grass instances; 99.76 %
 of batches have a model name.
 
+**Minigame pack** (`shared_minigame000`, 2026-11-23; counts high): 3,909
+batches, 3,317 prop and 592 grass, with 437,990 grass instances, nearly all
+in the hunting game's valley (largest kinds `veg_grass_short_cut_ps_01`
+117,161, `veg_grass_sml_01` 21,405, `veg_grass_lrg_01` 19,818) and on the
+puzzle game's island; 2,298 leaf and litter instances in the beat-'em-up
+area. Batch scale ranges are e.g. 0.75–1.25. No per-instance rotation is
+stored. The three grass colour bytes are **not a plain tint** (low): used
+as a multiply they turn everything dark olive (sample 83, 78, 57).
+
 ## 9.4 Archetype definitions and unnamed drawables
 
 Archetype struct `82d6fc83` (184 B, GTA V `CBaseArchetypeDef`):

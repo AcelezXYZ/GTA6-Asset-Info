@@ -204,6 +204,16 @@ match the video length within one frame across the audio-bearing files.
 - **Fonts and HUD shapes**: `data/ttdb/graphics` holds single-channel font
   glyph atlases and HUD shapes. The UI fonts themselves are vector outlines
   in Scaleform font libraries ([below](#scaleform-ui-fonts)).
+- **Arcade console** (2026-11-23; what it is high, names medium): three
+  2048 × 2048 BC textures in the UI store are whole 16:9 console home pages
+  squeezed to square (top bar, logo, description, key art, a row of three
+  tiles), one per game: `608bf472bbebdf5a`, `50b4807ac9c04456`,
+  `28fccff5c16fee70`. Their text sits about a tenth of the screen lower
+  than in the story movies showing the console, so they may be a store-page
+  variant. Those movies also show three titles with no data found in the
+  UI store. Crosshairs `e4c7da5c5cb2476c` (thin four-arc ring) and
+  `d82d7baf2177b8fa` (thicker) are not the hunting game's reticle as seen
+  in footage, which the game composes or replaces (medium).
 - **Minimap / pause map**: no tile set found in these stores or
   dictionaries. The map may be drawn from world data at runtime (not
   established). Menu layouts (which sprite goes where) are not decoded.
@@ -250,7 +260,40 @@ unknown). `data.rpf` has 146.
   candle flame, shadowy figure).
 - Open: the rule records (emitter parameters) and the sprite references.
   The sprite sheets are not embedded, and none of the 344,561 `ttpf` hashes
-  of the 57 stores occurs in the dictionaries.
+  of the 57 stores occurs in the dictionaries. *(Later decoding reports
+  sprite slots per rule, below; the two have not been reconciled.)*
+
+**Which game each arcade set serves** (2026-11-23; from effect names; high
+for four, medium for `scr_arc_st`): `scr_arc_bb` = the hunting game,
+`scr_arc_svr` = the zombie survivor shooter, `scr_arc_tl` = the first-person
+puzzle game, `weap_arc_tj_tracer` = the twin-stick time shooter (its muzzle
+flashes `weap_arc_tj_muz_rifle` / `_handgun` / `_shotgun` and
+`weap_arc_tj_tracer_shotgun` sit in the big weapons dictionary, 226
+effects), `scr_arc_st` = probably the beat-'em-up. The pack's streaming
+tables name five arcade games: `arcade_survivor`, `arcade_twinstick`,
+`arcade_beatemup`, `arcade_hunter`, `arcade_indiepuzzle`. The minigame pack
+holds no ped or skeleton resources.
+
+**Rule properties, read by rebuilding effects** (2026-11-23; medium):
+`particleLife` is seconds (blood blobs 2–3 s, mist 0.6–0.9 s, tracers
+0.01–0.05 s); `speedScalar` m/s; `sizeScalar` a percentage applied to
+`ptxu_Size`; `ptxu_Acceleration` z is up (gravity z = −9.8); colours look
+linear. The unnamed `ptxu_Colour` properties `e7851995` and `c1444d14` are
+the colour-over-life min / max; a rule whose alpha keys are all 0 still
+draws. Some rules carry two `ptxu_Acceleration` min / max pairs (which
+applies is open). Trail rules (`ptxd_Trail`) keep the width in the height
+of the size keys: the hunting game's tracer is a streak 0.03 wide tapering
+to 0 plus a smoke trail 0.66 wide.
+
+Sprite slots by format and how they render (about 60 rules; medium):
+`0x310` and `0x338` BC4 shape mask (red); `0x318` BC6H colour sprite;
+`0x350` BC7 sRGB; `0x340` and `0x348` BC5 (normal or lighting); `0x300`
+and `0x308` BC7 atlases. Atlases are either flipbooks (e.g. 2048 × 1024 with
+32 frames = 8 × 4) or variant sheets with no animation, one cell per
+particle (2 × 2 splatter `61f740590c748d11`, splash `d59d86542ed1a0c0`,
+droplets `b3daa343c4f83c93`). Open: effect duration (rules give spawn rates
+only), emission direction and cone, the keyframe textures, the other
+unnamed colour properties.
 
 ## Audio game-data containers
 
@@ -764,8 +807,20 @@ follows from the text. Copies of one table sit at fixed strides through
   are not recovered.
 - Inline markup: `~sl:gap:duration~` splits a subtitle into timed pieces
   (seconds); `~n~` new line; `~b~`, `~s~` colours; `~1~` parameters;
-  `~INPUT_…~` button icons, `~BLIP_…~`, `~COLOR_…~`
+  `~INPUT_…~` and `~INPUTGROUP_…~` button icons, `~BLIP_…~`, `~COLOR_…~`
   (`COLOR_SUBTITLE_FOREIGN_DIALOGUE` marks translated foreign-language lines).
+- **Minigame subtitles** (2026-11-23, high): the pack's conversation table
+  entries read straight from the PSO bytes as `AG_<game>AU_<4 letters>\0
+  <event name>_<NN>\0`; linking voice files to events through it gives
+  1,159 subtitled voice files across the four arcade games (321, 299, 272
+  and 267).
+- **The puzzle game's own table** is `data.rpf@1965010` (181 strings): menu
+  and pause entries, control hints, credits, track titles, and 11 notes,
+  10 of them in 11 variants that differ by one emphasised keyword, so the
+  game swaps a keyword per playthrough or state (structure high).
+  `data.rpf@19621d0` has 5 strings (three arcade titles); `data.rpf@19be010`
+  is the big general table (36,888 strings). The puzzle table was only
+  reachable once multi-block tables were read correctly (above).
 
 ---
 

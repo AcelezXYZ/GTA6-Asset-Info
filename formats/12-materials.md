@@ -104,7 +104,47 @@ materials, not from shader code (as of 2026-11-20).
 
 The 17-parameter ground shaders are a different family, four layers by
 their names (`standard_uber_4lyr_spx_dm_hbb`, `standard_uber_4lyr_pxm_hbb_fixuv1`,
-`standard_uber_4lyr_dpm_dm_hbb`), and are not mapped yet.
+`standard_uber_4lyr_dpm_dm_hbb`); their slots are not mapped here yet, but
+rendering confirms how they blend (next section).
+
+## Four-layer ground shaders (render check)
+
+(2026-11-23; from rendering exported minigame levels and comparing with
+footage, so these are consumer-side confirmations, not shader decodes.)
+Shaders `61e09df7` and `b21f1ba5`:
+
+| Item | Finding | Confidence |
+|---|---|---|
+| layers | four colour textures | high |
+| weights | RGB of the lookup texture on TEXCOORD_0 give layers 1–3; layer 4 = 1 − R − G − B. A 4 × 4 lookup reading RGB = 0 (`3fb347dace547ef9`) shows layer 4 only, as intended | high |
+| tint | a tint texture on TEXCOORD_0 multiplied over the result; the exact maths is open (`colour × tint × 2` at partial strength looks right) | medium |
+| height blend | each layer's data texture carries a height (blue channel); the higher layer wins at a boundary | medium |
+| tiling on 512 m map sections | TEXCOORD_0 × 64 = one repeat per 8 m | high |
+| set pieces | the detail UV varies per material (section-tiled, TEXCOORD_1, TEXCOORD_2 or none); road lookups are tileable and run TEXCOORD_0 to about 13.8, so they need repeat wrapping | high |
+
+Counts: a mountain-valley level of the minigame pack has 169 tiles and
+1,675 four-layer materials, covering 6,022 of its 6,023 ground meshes;
+three set-piece levels have 228, 45 and 10 (one of them 907 meshes: 697
+section-tiled, 207 with no detail UV, 3 on TEXCOORD_1).
+
+**Missing layer texture** (high): on tiles `s05_w18`, `s05_w19` and
+`s05_w20` of the minigame pack, 24 four-layer materials (126 meshes)
+reference one layer texture that is in no texture store on disk; the other
+three layers, the weights and the tint are present.
+
+Open: per-layer constant `c35e27af` (1.0 on 108 of 137 layers; tiling or
+intensity), the tint maths, and the projection when a material has no
+detail UV.
+
+## Two-layer rock shader `prop_2lyr_batch`
+
+(2026-11-23; render check.) Shader `89c8fe07`: base atlas on TEXCOORD_0, a
+tiling second layer on TEXCOORD_1, **weight = 1 − COLOR0.a** (unpainted
+vertices, A = 255, show the base only; with the weight not inverted every
+unpainted rock is fully mossed). High. One level places 15,656 rock meshes
+from 32 models and 41 materials; mean COLOR0.a is 0.63. A dirt overlay
+uses TEXCOORD_2, which on rocks is parked at a constant, so the dirt is
+uniform (low–medium).
 
 **Normal maps are DirectX convention (green = +Y down)** (confirmed by an
 integrability test on 270 of 300 maps). Invert G for glTF/OpenGL.
@@ -146,6 +186,20 @@ Tags in `12f85293` are joaat of the lower-case tag name: `002f77d9` =
 the preset applies to** (joaat of the full drawable name); this is how a
 head gets its face ([§7.5](07-models.md#ped-heads-face-textures-confirmed)).
 Set and preset names do not resolve.
+
+### Animal shader `ped_standard_animal`
+
+(2026-11-23.) On shader `295b85a9` the colour slot can hold a **region
+mask instead of colour** (high): on the white-tailed deer
+(`crm_deer_whitetailed_m_00` / `_f_00`) the BC1 texture is linear data with
+G = coat, B = white parts (belly, tail, throat, eye ring), R = dark parts
+(nose, hooves, eyes). 78 of the shader's 1,384 materials use such a mask;
+997 bind a real sRGB colour texture (the bald eagle among them). The coat
+colours are not stored with the model: material constants from offset 64
+(including a 16 × vec4 block `f08653a5`) and texture slots 2 and 3 are
+filled at runtime. Per-model variation lists exist (buck 14 entries, doe 8,
+eagle 4) but are unnamed hashes. Open: where the coat colours come from and
+which variation a spawn uses.
 
 ### Tint palettes
 

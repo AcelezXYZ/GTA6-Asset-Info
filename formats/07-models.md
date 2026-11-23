@@ -24,7 +24,7 @@ u32 magic `0x4042` at 0.
 |------|---------|-----------|
 | stream table | u32 slot k at +4k, k = 0..22. Value = `offset_in_2_byte_units << 8 \| format`; byte offset = `(v >> 8) × 2`. Slot 0 `0x4042` → offset 0x80, format 0x42 | confirmed |
 | 0x60 | f32 × 3 position base | confirmed |
-| 0x6C | u32: the model axis held in the flat 16-bit z slot. 2 = z: slots hold (x, y, z), identity. 1 = y: slots hold (z, x, y). 0 = x: slots hold (z, y, x), a swap and not a rotation. Before 2026-11-20 mode 0 was read as (y, z, x), which tipped wall panels by 90°. SixNG also scores all six permutations against the stored normals; **trust +0x6C instead**: a survey of 3,375 models (2026-11-23) found that override firing on 114 of 36,305 meshes (0.31 %, 51 models), and in the 7 checked by hand the hint was right and the override wrong (confirmed for those 7, inferred for the rest). | confirmed (2026-11-20) |
+| 0x6C | u32: the model axis held in the flat 16-bit z slot. 2 = z: slots hold (x, y, z), identity. 1 = y: slots hold (z, x, y). 0 = x: slots hold (z, y, x), a swap and not a rotation. Before 2026-11-20 mode 0 was read as (y, z, x), which tipped wall panels by 90°. SixNG also scores all six permutations against the stored normals; **trust +0x6C instead**: a survey of 3,375 models (2026-11-23) found that override firing on 114 of 36,305 meshes (0.31 %, 51 models), and in the 7 checked by hand the hint was right and the override wrong (confirmed for those 7, inferred for the rest). Supporting numbers (measured on samples): on meshes with 50 or more scored triangles the hinted order scores ≥ 0.95 against the normals on 90.5 %, and only one mesh (a helicopter rotor piece) has a hint below 0.7 with another order at ≥ 0.95; six of the seven re-exported with the hint have equal extents on every LOD. Fall back to scoring only for values other than 0–2. Whether the header is ever wrong is open. | confirmed (2026-11-20) |
 | 0x70 | f32 × 3 position step | confirmed |
 | vertex count | V = (smallest stream offset > 0x80 − 0x80) / 8 | confirmed |
 
@@ -387,6 +387,8 @@ per-layer vec4s are in [§12](12-materials.md).
   probably there; unchecked).
 - The 64-bit texture name hash; 152 of 229 parameter names.
 - How damage parts are swapped in; how `wheelScale` sizes the shared wheels.
+- The normal encoding of some meshes (a head and a helmet) fits no axis
+  order (best score 0.5–0.7, though 99 % of their normal words look valid).
 - Why some vehicle skeletons stop early: `dominator_hi` (72 bones) and
   `trotter_hi` / `_mid` (107) end after `cargo_volume`, `chassis_dummy` and
   `chassis_lowlod`, though their strings hold the door and wheel bone names

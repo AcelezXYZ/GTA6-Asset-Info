@@ -56,6 +56,16 @@ decals (`standard_decal_hbb`), peds (`ped_standard_skin`) and vehicles
 above). A table of known families adds car_paint, window, glass, emissive,
 water, terrain_multilayer.
 
+- Unnamed emissive families are recognised by hash, among them `d9ec330c`
+  (bulbs) and `faec4fc8` (signs); their colour texture works as the emissive
+  texture (inferred from names and usage). The full family list and the
+  intensity constant are open (the intensity is probably in the shader
+  constant buffers, [§7.6](07-models.md#76-shaders-materials)).
+- Vehicle bodies use the car-paint shader `476ac73a` (e.g. `stanierg2`).
+  Map wrecks `prop_am_wreck_*` (`levels.rpf`, `.#ft`) use only standard,
+  cutout and glass shaders, with their colour in the textures and no runtime
+  paint (inferred).
+
 ## Texture slots
 
 | Parameter | Name | Holds | Confidence |
@@ -130,6 +140,17 @@ far was negative (the export does not use them):
   collision surface (standard deviation about 54 of 255 on a road), so it
   is not a surface-type mask.
 
+The numbers behind these results (measured on samples):
+
+| Test | Result |
+|---|---|
+| mean R / G by shader group | ordinary 229 / 180 (G = R on 63 %), ground and terrain 213 / 57 (G = R 12 %), trees and foliage 23 / 126 (G > R 88 %), interior 252 / 125, emissive 219 / 178 |
+| per shader | `standard_fabric` 255 / 254, `standard_2lyr_ground` 235 / 16, `trees_standard_wind` 40 / 116, `standard_anisotropy_dirt` 192 / 70 |
+| own-geometry sky visibility vs R | median correlation 0.07 over 25 models (one panel model 0.79) |
+| surface id (two HD ground tiles, up-facing vertices over their collision triangle, median gap 4 / 13 mm) | G: eta² 0.04 / 0.10 (road mean G 55, sd 54); R: eta² 0.19 / 0.08 (grass 202–216, road 252) |
+| near instanced trees | mean R 248 within 2 m, 254 beyond 10 m; corr(R, trees within 10 m) −0.15 / −0.14 |
+| grass AO byte, road distance | corr 0.01; −0.22 / 0.14 |
+
 ## Material presets (peds)
 
 About 1,500 of the 4,678 meta resources in `packs.rpf` hold material
@@ -159,13 +180,43 @@ pool-blue, white cables black, grey or blue.
 - **Layout** (confirmed): a palette is 2^n + k texels wide. Each row holds
   256 >> k entries (at most 2^n), and there are 2^n / row length rows; rows
   are colour variants. Widths seen: 13, 20, 37, 66, 69, 129, 131, 256, 260,
-  513, 517, 1,024 and 2,051. For example 1,024 = 2^10 + 0 gives 4 rows of
-  256 (rows start at 256 / 512 / 768), and 131 = 2^7 + 3 gives 4 rows of
-  32. Later rows start with white.
+  513, 517, 1,024, 2,051 and 8,194. For example 1,024 = 2^10 + 0 gives 4
+  rows of 256 (rows start at 256 / 512 / 768), and 131 = 2^7 + 3 gives 4
+  rows of 32; also 260 = 16 × 16, 1,028 = 64 × 16, 8,194 = 128 × 64 and
+  13 = 1 × 8. Later rows start with white; unused rows are white, then
+  filler (e.g. `prop_am_shelf_metal_06b` 4 schemes,
+  `prop_am_cabinet_filing_01b` 16). The palette key is
+  *(texture struct +0x30) + 8; palettes are stored linear (no tiling).
 - **The entity's `tintValue`** (`3c852527`, [§9](09-placements.md)) selects
   the row (confirmed: for every palette width, the largest `tintValue`
   placed with it is rows − 1). Row 0 is the default.
 - Colour = palette[row × row length + `COLOR0.b`].
+- **Counts** (all `levels.rpf` placements, measured): 362 K of the 1.63 M
+  entities on palette models use a row above 0. 904 (0.25 %) exceed the
+  row count, nearly all on 13-wide single-row palettes, so assume clamping
+  (inferred). *This disagrees with the "largest `tintValue` = rows − 1"
+  check above; both are kept until re-measured.* 120 K entities with
+  `tintValue` > 0 are on models without an embedded palette (values mostly
+  up to 60), probably another use of the field (unknown).
+
+**Render check (2026-11-22).** The rule above, multiplied into the base
+colour and applied only to primitives whose own shader binds
+`tintpalettetex`, was rendered in a 3D engine:
+
+| Finding | Confidence |
+|---|---|
+| **Row 0 looks plausible.** A pier Ferris wheel hub and plaza come out white / grey, with coloured entries (green, cyan, red at indices 120–125) only on small parts. There is no in-game reference image | medium |
+| **Rows above 0 look wrong as read.** Rocks on a 260-wide palette (16 rows × 16) placed with rows 2, 6 and 7 render near black; on the hub's 1,024-wide palette (4 × 256), rows 1–3 are almost all `ffbbff` filler. So the row rule is probably **incomplete**: either `tintValue` does not select the row directly (the clamp at rows − 1 is inferred), or some shaders choose the row differently. Treating the palette as sRGB instead of linear does not fix it | medium |
+| **LOD drawables often bind no palette** even when the full model does, and there `COLOR0.b` is not a tint index (the Ferris wheel LOD has b = 0 with about 100 other distinct values) | high |
+
+This contradicts the "confirmed" row selection above for rendering; the
+`tintValue` maximum per width still holds, so both are kept until the row
+lookup is understood.
+
+**Texture load of map pieces** (measured on a full map export,
+2026-11-22; high): a 64 m HD ground tile such as `n02_e01_002_hd` references
+71 materials and about 170 textures, about 166 megapixels; big ground tiles
+and building shells typically use 120–170 textures each.
 
 **Texture hashes in no store.** Embedded tint palettes account for 30,095 of
 the 33,770 texture hashes that a full `levels.rpf` map export finds in no
@@ -174,6 +225,18 @@ install, the content-pack stores included ([§5](05-ttpf.md); they serve the
 packs' own models). They make up about 139 K references in a full map
 export; `1e2c9340e14a7d07` and `aa3eeff23a15dc75` are probably
 engine defaults (inferred).
+
+Uses by slot (full `levels.rpf` export, palettes excluded; measured):
+`c6f46e79` 41.9 K (22.7 K of them `aa3e…`), `c8e8c282` base colour 19.3 K
+(10.2 K `1e2c…`), `2c8d7182` 16.7 K, `739e3d0d` 10.1 K, `1e77bf4c` normal
+8.6 K, `2f4646cf` 7.0 K (all `1e2c…`), `38ebcdb3` 3.2 K, `8e0d63ee` 2.8 K,
+`9c362b2c` 2.3 K. `1e2c…` is in base and colour slots of standard,
+decal_blend, alpha, 2lyr, 2lyr_interior and uber_4lyr shaders; `aa3e…` in
+`c6f46e79` and the normal-atlas slots `2bb2ede8` / `4d56d7fe`. Typical
+decoded values of each slot (median mean RGBA over 3,000 models), usable as
+fallbacks: `c6f46e79` 0 / 150 / 224, `739e3d0d` 0 / 0 / 0, `38ebcdb3`
+85 / 84 / 91, `3c4af3d4` 0 / 0 / 123, `2bb2ede8` 0 / 172 / 128, `4d56d7fe`
+0 / 176 / 129, `1e77bf4c` 127 / 127 / 255, `c8e8c282` 159 / 152 / 145.
 
 ## Open questions
 
@@ -187,6 +250,11 @@ engine defaults (inferred).
   either 32-bit half beyond chance.
 - Whether `c6f46e79` G is roughness or gloss; emissive and glass flags for
   unknown shader families.
+- How tint palette rows above 0 are selected (see the render check under
+  [Tint palettes](#tint-palettes)).
+- Emissive intensity: no brightness for lamps, neon or lit windows is
+  decoded, so a port has to choose its own (the emissive texture is the
+  base colour image; brightness is unknown).
 
 
 ---

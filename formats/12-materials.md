@@ -218,7 +218,7 @@ uniform (low–medium).
 **Normal maps are DirectX convention (green = +Y down)** (confirmed by an
 integrability test on 270 of 300 maps). Invert G for glTF/OpenGL.
 
-### Vertex colour red and green
+## Vertex colour red and green
 
 Sampled on 4,000 models. Both channels are still **unknown**; every test so
 far was negative (the export does not use them):

@@ -39,6 +39,21 @@ With BC4, BC5 and BC6H too, **every texture of the 357 K has a decodable
 mip 0** by the chunk-table check (99.97 % before BC6H); BC4 adds 40
 textures, BC5 91 and BC6H the last 98.
 
+**Every BCPack chunk decodes** (2026-11-23, counted, high): 108,605 chunks
+in the 57 stores, 0 failures.
+
+| Codec | All 57 stores | 46 main stores | Unfitted blocks |
+|---|---|---|---|
+| BC1 | 102,725 | 100,020 | 0 |
+| BC3 | 35 | 35 | 0 |
+| BC4 | 77 | 77 | 0 |
+| BC5 | 333 | 325 | 0 |
+| BC6H | 268 | 268 | 0 |
+| BC7 | 5,167 | 5,120 | **1.05 %** (34 endpoint preset slots; 17.7 % of blocks in the content-pack stores); a fit is under way |
+
+The main-store counts match the codec table of [§5](05-ttpf.md); the
+content-pack stores add BC1 2,705, BC5 8 and BC7 47 chunks.
+
 ## 6.1 What is solved
 
 **Lanes (confirmed for the tested chunks).** A lane is an independent
@@ -177,7 +192,14 @@ Distances as BC7 ([§6.3](#63-bc7-blocks-codec-0x1c)).
   of w. This removed the speckles after mode changes (blocks within 0.15
   stops: 81 % → 86 %; 23 → 27 dB). Refitting the preset endpoint slots
   (below) then gave 88 % and 28 dB (median per texture 29 → 35 dB;
-  BCPack-only textures 58 % → 62 %).
+  BCPack-only textures 58 % → 62 %). The last 17 endpoint slots (81,093
+  blocks, 1.56 %) were then fitted, 15 against the next smaller mip and 2 by
+  edge continuity (below): edge cost 1.81 M → 36.5 K, reference scores
+  unchanged (medium-high; the 2 edge-fitted slots checked visually only).
+  With perfect presets the reference score would top out at 94.3 % of
+  blocks within 0.15 stops.
+- **Open:** the x prediction after a change from mode 12 to mode 11 is
+  sometimes off by +25 to +30 (44 blocks seen).
 - **Indices:** the BC7 scheme with a 4-bit MSB-aligned state, 3-bit reads in
   two-region modes; distance 0 predicts 8. Anchor top bits are dropped
   (truncating fits better than keeping them).
@@ -207,6 +229,17 @@ mip 3 under a mip 1 with a logo), so they cannot be scored.
   the decoded indices; an index-free best-palette score was too lenient on
   the second region's first endpoint. No plain copy of any affected
   mip 0 exists in the install, so nothing confirms them byte for byte.
+- **Edge continuity** (2026-11-23): preset slots reached only by textures
+  with no neighbouring mip (texture arrays, lighting textures stored as
+  mip 0 only) are fitted by minimising the pixel difference across block
+  edges between the blocks rooted at the slot and their neighbours. For
+  BC5 this is exact arithmetic: endpoints are prediction + residual mod
+  256, so a slot is a constant offset on every block rooted at it. The last
+  13 BC5 slots (1,811 blocks in 18 chunks, 15 of them in texture arrays)
+  were fitted this way, about 6 / 255 per edge pixel on the large slots
+  (medium: no reference mip; slots with 1–2 blocks are weakly determined).
+- **BC7:** 34 endpoint preset slots (1.05 % of blocks) are not fitted yet;
+  the order of the mode 0 / 2 headers is fitted (medium).
 
 **BC1/3/4/5:** Confirm the disputed or fitted endpoint presets and selector
 mappings against an independent copy of the same blocks. Two software

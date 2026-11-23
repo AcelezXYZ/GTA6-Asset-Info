@@ -40,6 +40,10 @@ summary pointer. The target of +0x138 is still unidentified.
 **Material record** (8 B): **u16 surface id** at +0 (always < 0x8000), flag
 bytes after it (unknown).
 
+**Vertices outside the main stream** (2026-11-23, confirmed on the minigame
+pack): either a small stream reached only by a pointer to its exact start,
+or uncompressed bytes after the last zlib stream (16-byte aligned).
+
 ### CPU collision BVH
 
 The geometry's `+0x130` points to a summary. Its `+0x50` points to

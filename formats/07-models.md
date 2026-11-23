@@ -205,6 +205,18 @@ slot 9 reads as 4 × u32 joint indices (up to 50 on a protagonist head),
 slot 8 as 4 × (u16, u16) with plausible joints in the low halves, and
 slots 6 + 7 weights sum to 255 on every vertex (inferred; not decoded).
 
+**Skeleton header extras** (measured on samples): a 256-slot hash table
+(u32 name hash, u32 bone index; `0xffffffff` empty) at ±0x08, and a
+compressed name trie at +0x20 (prefixes such as `GM_U01_`, `L_`, `Delt_`;
+encoding open). The `GM_U01_*` helper bones are parentless and their bind
+pivot equals their stored translation (e.g. `C_Spine3_L` = (0.010, 0.013,
+0.134)), so their bind is relative to a parent in the shared skeleton that
+is not known (inferred; name-pattern guesses do not fit). The shared
+skeleton's `hash16` values are not used by the palette. On vehicles model
++0x0C / +0x20 hold something else (not ascending; +0x0C = 295 on
+`phoenix`). The T-shirt palette hashes in neither skeleton include
+`12803912`, `1a8de2a9` and `1d2d2db7` (nine in total).
+
 ### Ped heads: face textures (confirmed)
 
 Head drawables (`ped_standard_head`) **bind no textures**, and every head
@@ -244,6 +256,20 @@ brows, mouth) and red / green UV remap maps.
   per-head offsets from the base heads are in
   [§19.4](19-ped-physics-resources.md#194-head-identity-deltas).
 
+**Face preset statistics** (measured): 337 presets use a face albedo, all in
+slot `ead733fc` with param "base", Category `378ad10c`; their parents are
+`c17f02fe` (723) and `a3bfa046` (350), probably the two sexes. 314 face
+sets have four members: the face preset, two members shared by all sets
+(`9a20772d`, `adb206b7`) and one per set. 428 higher sets contain face sets;
+their names look like structured ids (`125c8000`, `07dd9007`), not joaat.
+Meta type `0x71` map entries are structs `00000100`–`00000106` (`6098a50e`
+key + `063fa3f2` value; `00000101` = u32 key → u32 array). About 40 named
+heads (`cs_lucia_head_fr1_lat_000_y_full`, `cs_kordell` …) occur, by name
+or joaat, in no meta or PSO of any archive; only joaat("cs_lucia_head")
+appears, in a tag-hierarchy PSO (`packs.rpf@11dd29000`, struct `00000102`:
+a tag, then its parent tags). 453 of about 1,213 skin-coloured face albedos
+are referenced by no preset; `story000` has no material presets.
+
 ### Animals and one-bone parts (2026-11-22)
 
 - **One-bone palettes (confirmed).** A bone palette of length 1 (model
@@ -281,7 +307,7 @@ brows, mouth) and red / green UV remap maps.
 |-----|---------|-----------|
 | 0x00 | u32 shader name hash = joaat of the lower-case name (`standard` = `bcf03fc1`) | confirmed (all 344 shaders) |
 | 0x04 | `"atem"` | confirmed |
-| 0x08 | ptr → constant buffer (~0x160 bytes of floats) | inferred (layout unknown) |
+| 0x08 | ptr → constant block (~0x160 bytes of floats; 0x310 bytes, 196 floats, on the four-layer shaders), keyed by the parameter table (below) | measured on samples |
 | 0x10 | ptr → per-parameter slot pointers | confirmed |
 | 0x20 | ptr → parameter table: u8 ?, u8 count, …, then count × (u32 param hash, u32 data offset); param hash = joaat of the lower-case name (`diffusetex` = `c8e8c282`) | confirmed |
 | 0x38..0x3F | flags, see [§12](12-materials.md) | confirmed (bytes 1, 4) |
@@ -289,6 +315,22 @@ brows, mouth) and red / green UV remap maps.
 A texture parameter's slot points to a 0x50-byte struct whose +0x30
 pointer leads to a 32-byte texture reference: ptr, **u64 texture hash**
 (the `ttpf` key), u32 6, u32 hash.
+
+**Parameter table** (2026-11-22, measured on samples): header byte 1 =
+texture count (17 on the four-layer shaders), byte 4 = total entries (103
+there); entries are {u32 joaat name, u32 descriptor}.
+
+| Descriptor | Meaning |
+|---|---|
+| `4 × index` | texture slot |
+| `0x0040XXtt` | constant in the +0x08 block at float offset `XX` (`tt` = 03 or 07, probably a type) |
+| `0x01YYYY07`, `0x0041XX07` | constant in another buffer (not read) |
+
+Constant names recovered by dictionary search include `blendsoftness`,
+`bumpiness`, `fresnel`, `puddlemaskscale`, `tintblendamount`, `tintbump`,
+`tintbumpuvscalebias`, `tintintensity`, `tintroughnessbias` and
+`verttintintensity`; most sit in the unread buffers. The four-layer
+per-layer vec4s are in [§12](12-materials.md).
 
 ## 7.7 Vehicles
 
@@ -311,8 +353,9 @@ pointer leads to a 32-byte texture reference: ptr, **u64 texture hash**
 - The face of heads no preset lists (`a_head_base_*`, some `cs_*`), and of
   crowd heads whose presets have empty slots.
 - Occluder and water-vegetation LOD buffers (another format).
-- Shader constant-buffer layout (would give cable thickness, paint and
-  material constants).
+- The other constant buffers (`0x01YYYY07`, `0x0041XX07`), the meaning of
+  `tt`, most constant names (cable thickness and paint constants are
+  probably there; unchecked).
 - The 64-bit texture name hash; 152 of 229 parameter names.
 - How damage parts are swapped in; how `wheelScale` sizes the shared wheels.
 

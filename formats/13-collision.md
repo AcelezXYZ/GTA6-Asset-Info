@@ -146,7 +146,7 @@ evidence over the whole map:
 | path-link density | road-graph links over the id, relative to its area share |
 | plants on it | grass-batch instances standing on it, by plant family |
 | props on it | reflectors, bollards, barriers, fences, rocks, trees on it |
-| railway | surfaces under named railway entities (gravel / ballast ids) |
+| railway | surfaces under named railway entities (gravel / ballast ids, below) |
 
 Categories: road surface, dirt track / unpaved road, hard surface around
 roads, paved ground, grass / vegetated soil, forest floor, wetland, rocky
@@ -154,6 +154,18 @@ ground, walls, shore, seabed, gravel / ballast, and a generic default
 surface (one id covers ~39 % of all area). **98.3 % of collision area is
 categorised (22.7 % high, 68.1 % medium, 7.4 % low confidence), 243 ids**.
 These are categories, not material names.
+
+**Railway areas** (inferred): sampled under 3,224 named railway entities
+(sleepers, signal boxes, rail wheels and stacks, crossing signs,
+`*_rail_track*` pieces), two ids are strongly over-represented. `2287` is
+19–29 % of the samples against 0.4 % of collision area, but it is also in
+12,158 bounds files all over the map, so it is gravel / ballast in general
+(dirt tracks, verges, railway beds), not railway-only. `4180` is 9–21 %
+against 0.13 % of area, in 5,535 clustered bounds files, probably a gravel
+variant (verges, yards). The rest falls on the generic default id `317b`
+and grass ids; the track geometry itself mostly has no up-facing collision
+under the sample points. Not yet checked against the names of
+[§13.2](#132-surface-ids), which would replace these labels.
 
 ## 13.4 Fragment physics
 

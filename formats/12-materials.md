@@ -277,6 +277,20 @@ the preset applies to** (joaat of the full drawable name); this is how a
 head gets its face ([§7.5](07-models.md#ped-heads-face-textures-confirmed)).
 Set and preset names do not resolve.
 
+**Records are linked by u32 id, not by pointer** (2026-11-23; medium-high),
+so a decode that follows pointers from the root misses them; dump every
+struct instance instead. In the ped wardrobe resources (e.g. the zombie
+ones, `packs.rpf@2b21010` female and `@2b34010` male): `a9d57751` is a
+variation (`65121749` id, `Scale`, an `fb5bb20d` list of {`65121749` id,
+`StateName`} links); `f795e8ba` an item record (tag map `12f85293` {Key,
+Item[u32]}, Category, `080eec39`, `e13ebaf8`, an `ebacf18c` list of
+`37e52277`); `37e52277` a state / texture set (`147fdab5` with 64-bit
+texture hashes: normal, detail …). Key `4bfd27dd` holds the drawable, in
+these two files always a head (19 and 30 items, all resolving to `head_*`
+drawables; high). Open: where clothing drawables are named; the same
+structs appear in hundreds of other resources, keyed by shared Category
+ids.
+
 ### Animal shader `ped_standard_animal`
 
 (2026-11-23.) On shader `295b85a9` the colour slot can hold a **region

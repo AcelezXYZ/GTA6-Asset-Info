@@ -83,6 +83,14 @@ bounding box sits at `+0x110` / `+0x11C`. The node data is a private
 hardware layout (`0x81` fill, big-endian child counts 2–4) and is not
 decoded.
 
+**No stored geometry** (2026-11-23; high): across all 1,241 files of the
+minigame BVH4 archive, 90.7 % of the bytes are zero and only 0.15 % of the
+4-byte words read as floats inside the file's own bounding box, so there
+are no stored boxes or triangles; the runtime builder fills the buffer from
+the model. The node blocks (every 0x2000 bytes from a start that varies per
+file and is not in the header: 64 big-endian child counts, then
+little-endian child ids = byte offset >> 3) stay unexplained (low).
+
 `story000_bvh4.rpf` contains four zlib-compressed XML records.
 Its content and setup records reference terrain and merged BVH packs
 for mounting. Joining archived BVH4s back to meshes and rehydrating

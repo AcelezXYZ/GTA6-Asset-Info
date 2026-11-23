@@ -397,6 +397,10 @@ probably use the `_m_00` meshes (inferred).
    `cb61a7e1` (64-bit, zero on type 30), properties (key → u32 list). Type
    30 is fur / hair (inferred); its list under `e3da9c8b` ends in the slot
    hash (confirmed, one registry read).
+   Across all registries (confirmed): **33 PSO files** in `packs.rpf` hold
+   9,342 assets of struct `20e0f6ed`; types 23: 2,580, 60: 1,747, 66: 1,639,
+   30: 1,464, 1: 614, 0: 598, 50: 198, 5: 142, 15: 112. 1,853 of the piece
+   table's 1,879 GUIDs are in them.
 3. An unnamed resource right after the groom block (`packs.rpf@113b56010`,
    288,976 bytes) is a **hash map from GUID to a record** (confirmed): u32
    at 0x10 = `0x100` (group count), the map pointer at 0x18 and the map end
@@ -459,12 +463,35 @@ files).
   animals; same-sized relatives (coyote among canines) sit at 4–30 mm, so a
   threshold alone does not separate them.
 
+### Human hair (2026-11-23)
+
+- **Hair assets:** 911 of the type-30 assets are human hair (data
+  confirmed, meanings inferred). Property `e3da9c8b` holds 10–13 tag
+  hashes, many of them joaat of style words (`non`, `n`, `straight`, `m`,
+  `wavy`, `sb`, `curly`, `sf`, `sm`, `l01`–`l09`, `p`, `sr`, `braided`,
+  `f01`–`f03`, `full`). `3938f375` is one hash with 217 distinct values
+  (two resolve to character names; one value covers 489 assets);
+  `86a7e2f6` one hash with 171 values, none resolved.
+- **No name link** (confirmed negative): of 612,380 material presets, the
+  429 named after hair or fur placeholders are all animal; none of the 856
+  human placeholders has a preset named after it, and no hair asset field
+  is joaat of a placeholder name.
+- **Archive order** (confirmed on the first 6 only): the groom sequence
+  starts with 6 single-piece armpit grooms, matching the 6
+  `armpithairfull_*` placeholders that sort first. Grooms share the ped
+  part mesh space (head pieces at z ≈ 0.6, head meshes at z 0.42–0.71).
+- **Fit to a head** (measured): 1,819 groom pieces have their roots within
+  6 mm of one female head mesh, in 128 runs of neighbouring pieces; a run
+  is not a style, and style boundaries inside a run are unmarked.
+
 ## Open questions
 
 - The groom ↔ placeholder drawable link for **human** hair (`hair*`,
-  `beard*`, `brows*` 3-vertex drawables). No shared joaat or 64-bit hash
-  was found. For animal fur the order rule of [§19.6](#196-animal-material-presets-and-the-fur-link)
-  links grooms to fur assets; whether human hair follows it is not checked.
+  `beard*`, `brows*` 3-vertex drawables): what names a hair asset's
+  placeholder, which style a character wears, and where one style ends
+  inside a run ([Human hair](#human-hair-2026-11-23)). For animal fur the
+  order rule of [§19.6](#196-animal-material-presets-and-the-fur-link)
+  links grooms to fur assets.
 - Animal fur: whether the table lists a variant's ids in file order; why
   66 placeholders have no preset and where the missing piece files are;
   the other registry files and record shapes; fur as drawn (only guide

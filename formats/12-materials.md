@@ -75,11 +75,11 @@ water, terrain_multilayer.
 | `84c69350`, `58b6e707` | `lyr0normaltex`, `lyr1normaltex` | normal, BC5 | confirmed |
 | `27dbd2be`, `7e1f7f44`, `4c759bf1`, `de84c011`, `1a016c7e` | `bumptexture_layer0`–`3`, `tintbumptexture` | terrain layer / detail normals | inferred |
 | `c075f9b6` | `lookuptexture` | terrain RGB layer-blend mask | inferred |
-| `346394ea`, `7d4f12e2`, `7485dafb` | `lyr0diffusetex`, `lyr1diffusetex`, `dirtdiffusetex` | colour layers of the map blend shaders; `7485dafb` has opacity in alpha | inferred |
+| `346394ea`, `7d4f12e2`, `7485dafb` | `lyr0diffusetex`, `lyr1diffusetex`, `dirtdiffusetex` | colour layers of the map blend shaders; `7485dafb` has opacity in alpha. **On the vehicle two-layer shaders `lyr0diffusetex` / `lyr1diffusetex` are linear BC7 data maps, not colour** (tyre tread and sidewall lettering in purple / olive; same mean at mip 0 and small mips), see [§11](11-vehicle-paint.md#vehicle-shaders-2026-11-22) | inferred (map shaders); confirmed not colour (vehicles) |
 | `0df47048` | `diffusetex2` | secondary / detail colour, sRGB | inferred |
 | `c6f46e79` | `speculartex` | packed: **R** binary mask (metalness?), **G** roughness or gloss, **B** AO / cavity, A unused | inferred |
 | `739e3d0d` | `speculartex2` | packed data. On wet-capable surfaces: R region mask, G nearly flat (puddle blobs), B detailed, A AO-like. **Most maps are R = G = 0, B ≈ 0.5**, so B is not roughness: read that way, surfaces turn mirror-like. Treat the channel meaning as unknown | inferred |
-| `19df25d7` | ? | format 157 (unknown), vehicle shader | unknown |
+| `19df25d7` | ? | vehicle shaders: a **128 × 256 R8G8B8A8 sRGB texture of horizontal colour bands**, one per car, shared by all its two-layer materials and the tyre ([§11](11-vehicle-paint.md#vehicle-shaders-2026-11-22)); probably a material palette | format and sharing confirmed; role inferred |
 | `2c8d7182` | `tintpalettetex` | tint palette **embedded in the model**, on almost every map model: one row of RGBA8 sRGB colours (13 to 2,051, stored linear, padded with `ffbbff`). The texture struct's +0x30 pointer leads to a record whose +8 is the 64-bit store key, so these hashes are not in any `ttpf` store | confirmed |
 
 **Placeholder textures** (confirmed). Many building materials point their

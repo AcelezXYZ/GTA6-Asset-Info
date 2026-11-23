@@ -239,6 +239,10 @@ gives wrong HDR lighting textures:
 | 16-bit one-region mode (mode code 15: 16-bit base, 4-bit deltas) | mask `(1 << 16) − 1` computed in at least 32 bits | computed in 16 bits the mask is 0, so the second endpoint decodes as 0 |
 | signed format (SF16) | two's-complement sign extension of the endpoints | taking `value & 0x7FFF` as a magnitude after extension makes negative endpoints wrong |
 
+A fourth, smaller one: in the signed format a negative value that
+truncates to zero must decode as +0, per the specification's unquantize
+rule (high).
+
 The first two are high confidence; the signed case is high from the
 specification but only 25 signed textures were available to look at.
 

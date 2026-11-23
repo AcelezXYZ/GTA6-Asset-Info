@@ -79,11 +79,11 @@ unknown).
 
 | Descriptor field | Meaning | Confidence |
 |---|---|---|
-| u32 d0 bits 0–13 / 14–27 / 28–31 | width − 1 / height − 1 / mip count − 1 (on cube maps, tile modes 9–12, the field is the mip count itself: cubes marked "2" store one mip per face). The mip field **undercounts on about 44.9 K textures** ([below](#real-mip-count)) | confirmed (width, height); mip field unreliable |
-| u32 d1 bits 0–2 | flags | unknown |
+| u32 d0 bits 0–13 / 14–27 / 28–31 | width − 1 / height − 1 / mip count − 1 (on cube maps, tile modes 9–12, the field is the mip count itself: cubes marked "2" store one mip per face; *refined 2026-11-23: cube mip count = field + copies − 1, see [Arrays and cube maps](#arrays-and-cube-maps)*). The mip field **undercounts on about 44.9 K textures** ([below](#real-mip-count)) | confirmed (width, height); mip field unreliable |
+| u32 d1 bits 0–2 | flags; on every cube = copies − 1 | unknown (cubes confirmed) |
 | u32 d1 bits 3–9 | DXGI format | confirmed |
-| u32 d1 bits 10–19 | array size − 1 (0 on 356,418 of 357,115 textures). "Bit 10" alone is the low bit of this field: it is set on every array with an even size (598 textures). Sizes: 6 = cube maps (567); 2 (19), 3 (99), 8 (3), 16 (1), 32 (4), 48 (2), 64 (2) = texture arrays. Layouts in [Arrays and cube maps](#arrays-and-cube-maps) | confirmed (the sizes match the store spacing; every slice decodes to a separate, coherent image) |
-| u32 d1 bits 20–23 | ? | unknown |
+| u32 d1 bits 10–19 | array size − 1, or **depth − 1 on 3D textures** (0 on 356,418 of 357,115 textures). "Bit 10" alone is the low bit of this field: it is set on every array with an even size (598 textures). Sizes: 6 = cube maps (567); 2 (19), 3 (99), 8 (3), 16 (1), 32 (4), 48 (2), 64 (2) = texture arrays. Layouts in [Arrays and cube maps](#arrays-and-cube-maps) | confirmed (the sizes match the store spacing; every slice decodes to a separate, coherent image) |
+| u32 d1 bits 20–23 | **resource kind**: 2 = 2D, 4 = cube, 6 = 3D, 10 = 2D array. The four values cover every texture | confirmed (2026-11-23) |
 | u32 d1 bits 24–27 | tile mode | confirmed |
 | u64 loc bits 0–20 | first 4 KiB page, counted after the 0x1000 header page (virtual offset = page × 0x1000 + 0x1000) | confirmed |
 | u64 loc higher bits | ? | unknown |
@@ -100,13 +100,20 @@ textures (confirmed):
 | Case | Textures | Field says | Stored |
 |---|---|---|---|
 | tile mode 1 or 2, field 0 (mostly 1024 × 1024 terrain normal maps) | 41.5 K | 1 mip | 3 mips |
-| tile mode 1 UI sprites, field 1 | about 2.7 K | 2 mips | 1 mip |
+| tile mode 1 UI sprites, field 1 | about 2.7 K | 2 mips | 1 mip (in tile mode 1, field 1 always means 1 mip: store spacing says so on all 4,071 such textures where it can tell) |
 | uncompressed formats, tile modes 1–3, field 1 | | 2 mips | mip 0 only |
 | others | a few hundred | | off by 1–2 |
 
 Mips are stored smallest first with mip 0 last, so a wrong count puts mip 0
 at the wrong offset: a scrambled band of the smaller mips across the top of
 1024 × 1024 terrain textures, or noise on small UI sprites.
+
+**A single-mip surface has no mip tail** (2026-11-23, high): its mip starts
+at offset 0 even when it would fit in a tail, since Gfx10 builds a tail
+only for more than one mip. E.g. a 16 × 8 RGBA8 texture fills only the
+256-byte blocks 0 and 2 of its 4 KiB block; the 2,249 tail-sized tile-mode-1
+textures hold their data at offset 0. Why tile modes 2 and 3 use other
+rules is open (mode 3: spacing gives field + 3).
 
 Rule (2D textures and arrays): each texture's mip chain runs right up to
 the next texture's virtual offset. Where the size given by the field does
@@ -151,7 +158,7 @@ true count is stored is unknown; it does not map to a single bit field.
   Whether any texture uses the signed form for real data is open.
 - **R16_FLOAT array at twice its size** (one texture, `fd954c597b21d41c` in
   `ttdb_graphics`: 256 × 32, 8 slices, tile mode 1, one mip; confirmed,
-  2026-11-21). Each slice takes 32 KiB instead of 16 KiB: every other KiB is
+  2026-11-21; *later shown to be a 3D volume, see [3D textures](#3d-textures)*). Each slice takes 32 KiB instead of 16 KiB: every other KiB is
   zero. Each 4 KiB block holds 32 × 32 elements, with address bits 1–9 =
   `x0 y0 y1 x1 y2 x2 x3 y3 x4` and bit 11 = `y4` (bit 10 is the unused
   KiB). The content is smooth gradients, probably a lookup table. With it,
@@ -210,8 +217,36 @@ last copy is the full-resolution cube.
 - Tile mode 9 (one copy) is a plain face-by-face cube: e.g. 16×16 and 32×32
   cubes, whose whole chain is one tail block per face.
 
+**Cube mip count** (2026-11-23, high): mip count = d0 mip field + copies −
+1, with copies = tile mode − 8 (d1 bits 0–2 = copies − 1 on every cube). On
+every cube the data runs exactly to that mip and the next tail slot is
+empty (64 × 64 BC7 field 4: 42 of 42 faces; 128 field 4: 18 / 18; 256
+field 2: 5 / 6). On 43 64 × 64 BC7 field-6 cubes the restored 1 × 1 mip
+matches the box-filtered 2 × 2 mip within 2.20 levels on average. Open:
+the u64 loc bits 21 and up on cubes (they look like packed per-copy
+values).
+
 Seen: light cookies (`lighting.ttpf`), sky/star cubes and interior room
 cubes (shop walls, ceiling and floor).
+
+## 3D textures
+
+(2026-11-23.) Resource kind 6 (d1 bits 20–23); the array-size field gives
+the depth. They use the **3D `SW_4KB_S` pattern** (non-XOR); element
+address bits, low first:
+
+| Element size | Bits | Brick |
+|---|---|---|
+| 8 bytes | `x0 z0 y0 x1 z1 y1 x2 z2 y2` | 8 × 8 × 8 |
+| 2 bytes | `x0 z0 y0 z1 y1 x1 z2 y2 x2 z3 y3` | 8 × 16 × 16 |
+
+Bricks are 4 KiB, ordered x, then y, then z. High for 2- and 8-byte
+elements; other sizes are not measured. The stores hold three volumes:
+R16G16B16A16_FLOAT 32 × 64 × 32 and 32 × 32 × 32, and R16_FLOAT 256 × 32 ×
+8. The R16_FLOAT one is the "array at twice its size" above: depth 8 leaves
+z3 = 0, which is the "every other KiB unused" pattern. Slice-to-slice
+differences drop from 37.5 to 5.7, 85.6 to 5.2 and 42.4 to 0.36, with no
+seams every 8 rows.
 
 ## Recovering individual plain mips
 

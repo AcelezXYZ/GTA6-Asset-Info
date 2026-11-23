@@ -310,8 +310,21 @@ above that `4bfd27dd` is the only drawable key):
   types.
 - Each variation is a clothing set or a head set (head, eyes, teeth,
   eyecap).
+- **Variation lists** (2026-11-23; medium): a separate packs PSO maps each
+  model to its variations. The map key is the model hash; each item is a
+  struct `a5ea6310` {`fc7eaa76` variation id, `fee182a6` outfit type,
+  `Scale`}. Only clothing sets are listed; head sets are not, which
+  suggests any head set can pair with any listed clothing set (inferred).
+  Outfit types are shared between models.
 
-Open: how the game pairs clothing and head variations, the `StateName`
+**Dirt presets** (2026-11-23; high for the layout): plain XML in
+`common.rpf`. `CannedColors` maps a key to an RGB colour; `AlphaChannels`
+lists (Probability, Channel) pairs; `DirtDefinitions` hold scalars,
+`ClothHideDirtModifiers`, `SkinDirtModifiers`, `AlphaMasksLookup`,
+`ColorLookup` and `IgnoreZoneColor`. Which mask channel the game samples is
+unknown.
+
+Open: whether head sets really pair freely with clothing sets, the `StateName`
 states, and most scalar fields of `f795e8ba`; the same structs appear in
 hundreds of other resources, keyed by shared Category ids.
 

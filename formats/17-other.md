@@ -432,39 +432,68 @@ byte is its class.**
     role is unknown).
   - Randomized, sequential and class-8 sounds end with u8 n, n child
     references. A wrapper's last 12 bytes are child, u32, reference.
-  - **Child references of more classes** (2026-11-23; offsets from the
-    start of the class body, which begins where the header ends;
-    `0xffffffff` = none):
+  - **Child references of more classes** (2026-11-23, re-measured on the
+    main sound file; offsets from the start of the class body, which begins
+    where the header ends; `0xffffffff` = none). A fixed offset counts when
+    at least 96 % of its values are valid indices and they lie nearer the
+    parent than chance:
 
     | Class | Child references | Confidence |
     |---|---|---|
     | 15 | 6 bytes, u8 k, k bytes, u8 n, then n × (u32 child, f32 mostly 1.0, u8) | high (70 of 70) |
-    | 1 | at 6 | medium-high |
-    | 2 | at 56 | medium-high |
-    | 5 | at 0, 4 and 8 | medium-high |
-    | 16 | at 15 | medium-high |
-    | 20, 27 | at 0 | medium-high |
-    | 28 | at 0 and 4 | medium-high |
-    | 30 | at 0 and 25 | medium-high |
-    | 48 | at 0 and 8 | medium-high |
+    | 24 | a count byte, then n references at the end of the body | high (2,866 of 2,883 fit, none bad) |
+    | 1 | at 6 | high |
+    | 2 | at 56 | high |
+    | 3 | at 29 and 33 | high |
+    | 5 | at 0, 4 and 8 | high |
+    | 9 | at 20 | high |
+    | 10 | at 0 and 4 | high |
+    | 19 | at 33 | high |
+    | 20, 27, 29, 30, 31, 36, 40, 48 | at 0 | high |
+    | 28 | at 0 and 4 | high |
+    | 41 | at 0, 6 and 12 | high |
+    | 46 | at 9 | high |
 
-    The fixed offsets read as valid indices on every object of each class
-    (5–34 per class) and point at sound classes; together they add 393
-    graph edges, so non-simple sounds that reach a wave rise from 2,002 to
-    2,228 of 2,385.
+    *Retracted (2026-11-23):* an earlier, smaller sample also listed class
+    16 at 15, class 30 at 25 and class 48 at 8. On the full file those are
+    not references: class 16 at 15 is a bit mask (`0x0e`, `0x1e` …
+    `0x1fe`) and the other two are constants. Class 16 (9,093 objects)
+    instead holds hashes that match no object name, probably parameter
+    names (inferred). With these references about half of the main file's
+    sounds reach a simple sound (the earlier sample gave 2,228 of 2,385
+    non-simple sounds).
+  - **The main sound file is split** (2026-11-23, high): its 241,999
+    objects are carved as two entries. Between them, past the object data
+    and inside the file's second hash table, sit three 64 KiB chunks that
+    are not zlib (entropy 8.0 bits per byte). Only that table's length is
+    needed: joining the two pieces and zero-filling the gap parses the
+    whole file. What the chunks hold is unknown.
 - **Sound header** (every class except 17, 49, 56 and 57; high: 4,392 of
   4,395 headers decode, each simple sound's container starts where its
   header ends, 2,051 of 2,051, and 2,015 of 2,016 wrappers then have
   exactly 12 body bytes): byte 1 is a mask, each set bit adds one sub-mask
   byte, and each sub-mask bit adds a fixed-size field. (1,0) is 8 bytes of
-  2-bit tristate flags; (2,4), (2,5), (3,2), (4,5) and (5,3) are 4 bytes;
-  (3,7), (4,2) and (4,7) are 1 byte; the rest 2 bytes. (0,0) and (0,2) are
-  nested u8 masks whose u16 values come after all other header fields.
+  2-bit tristate flags; (0,0) and (0,2) are nested u8 masks whose 2-byte
+  values come after all other header fields.
+
+  *Corrected field sizes* (2026-11-23, high; field (mask bit, sub-mask
+  bit); replaces the earlier list, which had (0,1) as 2 bytes and covered
+  fewer fields; with these sizes fixed-size classes get a single body
+  length on 97 % of 112 K objects):
+
+  | Size | Fields |
+  |---|---|
+  | 8 bytes | (1,0) |
+  | 4 bytes | (1,1), (2,4), (2,5), (3,2), (4,0), (4,5), (5,1)–(5,4), (5,6), (5,7), (6,0)–(6,3), (6,5), (7,1), (7,4)–(7,6) |
+  | 3 bytes | (0,1), (0,3) |
+  | 2 bytes | (1,2)–(1,6), (2,0)–(2,3), (2,6), (2,7), (3,0), (3,1), (3,3)–(3,6), (4,1) |
+  | 1 byte | (3,7), (4,2), (4,6), (4,7), (5,0) |
+  | nested | (0,0), (0,2): a mask byte, then 2 bytes per set bit at the end |
+  | unknown | (0,5), (0,7), (1,7), (4,3), (4,4), (5,5), (6,7), (7,0), (7,2), (7,3), (7,7); seen mostly in classes 51–77, which are not sound classes |
 - Open: field meanings ((1,2) looks like a volume in mB), the other body
-  fields, the references of classes 3, 9, 10, 19, 24, 29, 31, 36, 40, 41
-  and 46 (too few samples), the headerless classes 17, 49, 56 and 57, and
-  the other schemas (game objects, speech and others use a
-  different header).
+  fields, the unknown header field sizes, the gap chunks of the split
+  file, the headerless classes 17, 49, 56 and 57, and the other schemas
+  (game objects, speech and others use a different header).
 
 ## Animation
 

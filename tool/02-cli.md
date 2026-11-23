@@ -154,8 +154,9 @@ For the two zombie wardrobes (`packs.rpf@2b21010` and `@2b34010`),
 indexing `packs` alone gives the same 43 and 75 variations, parts and
 scales as indexing every archive (compared record by record); other
 wardrobes may reference drawables outside `packs` (not checked). Timings:
-names about 4 s, `texture-users packs` about 32 s. Which head set belongs
-to which clothing set is not known.
+names about 4 s, `texture-users packs` about 32 s. The model's variation
+list names only clothing sets, so head sets probably pair with any of them
+(medium; see [variation lists](../formats/12-materials.md#material-presets-peds)).
 
 ### Effects and fonts
 

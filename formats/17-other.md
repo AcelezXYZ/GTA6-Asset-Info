@@ -258,6 +258,16 @@ match the video length within one frame across the audio-bearing files.
 - **Fonts and HUD shapes**: `data/ttdb/graphics` holds single-channel font
   glyph atlases and HUD shapes. The UI fonts themselves are vector outlines
   in Scaleform font libraries ([below](#scaleform-ui-fonts)).
+- **Arcade console** (2026-11-23; what it is high, names medium): three
+  2048 × 2048 BC textures in the UI store are whole 16:9 console home pages
+  squeezed to square (top bar, logo, description, key art, a row of three
+  tiles), one per game: `608bf472bbebdf5a`, `50b4807ac9c04456`,
+  `28fccff5c16fee70`. Their text sits about a tenth of the screen lower
+  than in the story movies showing the console, so they may be a store-page
+  variant. Those movies also show three titles with no data found in the
+  UI store. Crosshairs `e4c7da5c5cb2476c` (thin four-arc ring) and
+  `d82d7baf2177b8fa` (thicker) are not the hunting game's reticle as seen
+  in footage, which the game composes or replaces (medium).
 - **Minimap / pause map**: no tile set found in these stores or
   dictionaries. The map may be drawn from world data at runtime (not
   established). Menu layouts (which sprite goes where) are not decoded.
@@ -290,9 +300,10 @@ so they cannot be looked up by name; HUDs are probably drawn by script.
 ## Particle effect dictionaries
 
 (2026-11-22.) Unnamed resources with no geometry and at least one embedded
-texture named `keyframeTexture` (R16G16B16A16_FLOAT, 16 × 4: property curves
-over a particle's life, 16 samples in 4 rows; what each row drives is
-unknown). `data.rpf` has 146.
+texture named `keyframeTexture` (R16G16B16A16_FLOAT, 16 × 4, 16 samples in
+4 rows). It was first read as property curves over a particle's life; later
+decoding says it is **not** a set of life curves (the life curves are the
+keyframe properties below), so what it holds is open. `data.rpf` has 146.
 
 - Rule names are plain strings in the system page. The dictionary name is
   the string that prefixes the most others with `_` (`scr_arc_tl` →
@@ -304,7 +315,80 @@ unknown). `data.rpf` has 146.
   candle flame, shadowy figure).
 - Open: the rule records (emitter parameters) and the sprite references.
   The sprite sheets are not embedded, and none of the 344,561 `ttpf` hashes
-  of the 57 stores occurs in the dictionaries.
+  of the 57 stores occurs in the dictionaries. *(Later decoding resolves
+  particle sprites to the effects texture store and reports sprite slots
+  per rule, below, so the earlier search probably missed them; not
+  reconciled in detail.)*
+
+### Rule tables
+
+(Offsets measured on the arcade dictionaries; property names confirmed by
+hash; units unverified.)
+
+- **Root** (system page +0): +0x10 dictionary name; +0x20 texture /
+  drawable table (unused); +0x28 effect rules, +0x30 emitter rules, +0x38
+  particle rules. Each table has a hash array at +0x20 (joaat of the rule
+  name), u32 count | capacity << 16 at +0x28 and a pointer array at +0x30.
+- **Effect rule** (0x240 B): +0x18 f32 (4.2 on every arcade effect), +0x20
+  name, +0x38 event array (u16 count at +0x40; an event has its emitter rule
+  at +0x50 and particle rule at +0x58), +0x48 evolution list ("LOD",
+  "intensity"), floats at +0x98..+0xB8, and keyframe properties at
+  +0xB8 + 0x40·i: colourTintMin, colourTintMax, zoomScalar, dataSphere,
+  dataCapsule.
+- **Emitter rule** (0x300 B): +0x18 f32, +0x1C own hash, +0x20 name; ten
+  keyframe properties at +0x40 + 0x40·i, the same in every emitter:
+  spawnRateOverTime, spawnRateOverDist, particleLife, playbackRateScalar,
+  speedScalar, sizeScalar, accnScalar, dampeningScalar,
+  matrixWeightScalar, inheritVelocity.
+- **Keyframe property** (0x40 B): +0x10 key list, +0x18 u16 count | u16
+  capacity, +0x30 id hash (stored twice). **Key** (0x20 B): time 0..1 at +0,
+  1 / (time − previous time) at +4, value vec4 at +0x10 (min / max in x / y
+  for ranged properties).
+- **Property id = joaat(lower("`<class>:m_<member>KFP`"))**. Behaviour
+  properties resolve for ptxu_Acceleration, Size, Rotation, Dampening,
+  MatrixWeight, ZCull, AnimateTexture, Decal, Light, Attractor, FogVolume
+  and ptxd_Trail; ptxu_Velocity:m_angleKFP = `2abaae94`. ptxu_Colour has
+  emissiveIntensity plus five unresolved ids (`e7851995`, `c1444d14`,
+  `6dfba680`, `a0930bb2`, `d24def27`).
+- **Particle rule** (0x430 B): +0x178 name, +0x188 behaviour pointer list
+  (u16 count at +0x190; behaviours carry keyframe properties at +0x40·k,
+  their type hashes resolve to no known name), +0x388 keyframe texture
+  (null on about 7 %). +0x248..+0x2E8: four {pointer, short half-float
+  string, u32 pair} records (shader variables?); +0x300..+0x360 sparse
+  64-bit values, probably the sprite references; +0x370 a list (u16 count
+  at +0x378) of shared hashes, probably shader / technique ids (guesses).
+
+**Which game each arcade set serves** (2026-11-23; from effect names; high
+for four, medium for `scr_arc_st`): `scr_arc_bb` = the hunting game,
+`scr_arc_svr` = the zombie survivor shooter, `scr_arc_tl` = the first-person
+puzzle game, `weap_arc_tj_tracer` = the twin-stick time shooter (its muzzle
+flashes `weap_arc_tj_muz_rifle` / `_handgun` / `_shotgun` and
+`weap_arc_tj_tracer_shotgun` sit in the big weapons dictionary, 226
+effects), `scr_arc_st` = probably the beat-'em-up. The pack's streaming
+tables name five arcade games: `arcade_survivor`, `arcade_twinstick`,
+`arcade_beatemup`, `arcade_hunter`, `arcade_indiepuzzle`. The minigame pack
+holds no ped or skeleton resources.
+
+**Rule properties, read by rebuilding effects** (2026-11-23; medium):
+`particleLife` is seconds (blood blobs 2–3 s, mist 0.6–0.9 s, tracers
+0.01–0.05 s); `speedScalar` m/s; `sizeScalar` a percentage applied to
+`ptxu_Size`; `ptxu_Acceleration` z is up (gravity z = −9.8); colours look
+linear. The unnamed `ptxu_Colour` properties `e7851995` and `c1444d14` are
+the colour-over-life min / max; a rule whose alpha keys are all 0 still
+draws. Some rules carry two `ptxu_Acceleration` min / max pairs (which
+applies is open). Trail rules (`ptxd_Trail`) keep the width in the height
+of the size keys: the hunting game's tracer is a streak 0.03 wide tapering
+to 0 plus a smoke trail 0.66 wide.
+
+Sprite slots by format and how they render (about 60 rules; medium):
+`0x310` and `0x338` BC4 shape mask (red); `0x318` BC6H colour sprite;
+`0x350` BC7 sRGB; `0x340` and `0x348` BC5 (normal or lighting); `0x300`
+and `0x308` BC7 atlases. Atlases are either flipbooks (e.g. 2048 × 1024 with
+32 frames = 8 × 4) or variant sheets with no animation, one cell per
+particle (2 × 2 splatter `61f740590c748d11`, splash `d59d86542ed1a0c0`,
+droplets `b3daa343c4f83c93`). Open: effect duration (rules give spawn rates
+only), emission direction and cone, the keyframe textures, the other
+unnamed colour properties.
 
 ## Audio game-data containers
 
@@ -818,8 +902,20 @@ follows from the text. Copies of one table sit at fixed strides through
   are not recovered.
 - Inline markup: `~sl:gap:duration~` splits a subtitle into timed pieces
   (seconds); `~n~` new line; `~b~`, `~s~` colours; `~1~` parameters;
-  `~INPUT_…~` button icons, `~BLIP_…~`, `~COLOR_…~`
+  `~INPUT_…~` and `~INPUTGROUP_…~` button icons, `~BLIP_…~`, `~COLOR_…~`
   (`COLOR_SUBTITLE_FOREIGN_DIALOGUE` marks translated foreign-language lines).
+- **Minigame subtitles** (2026-11-23, high): the pack's conversation table
+  entries read straight from the PSO bytes as `AG_<game>AU_<4 letters>\0
+  <event name>_<NN>\0`; linking voice files to events through it gives
+  1,159 subtitled voice files across the four arcade games (321, 299, 272
+  and 267).
+- **The puzzle game's own table** is `data.rpf@1965010` (181 strings): menu
+  and pause entries, control hints, credits, track titles, and 11 notes,
+  10 of them in 11 variants that differ by one emphasised keyword, so the
+  game swaps a keyword per playthrough or state (structure high).
+  `data.rpf@19621d0` has 5 strings (three arcade titles); `data.rpf@19be010`
+  is the big general table (36,888 strings). The puzzle table was only
+  reachable once multi-block tables were read correctly (above).
 
 ---
 

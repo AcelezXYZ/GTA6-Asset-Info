@@ -114,7 +114,106 @@ materials, not from shader code (as of 2026-11-20).
 
 The 17-parameter ground shaders are a different family, four layers by
 their names (`standard_uber_4lyr_spx_dm_hbb`, `standard_uber_4lyr_pxm_hbb_fixuv1`,
-`standard_uber_4lyr_dpm_dm_hbb`), and are not mapped yet.
+`standard_uber_4lyr_dpm_dm_hbb`), mapped in the next section.
+
+## Four-layer ground shaders
+
+Shaders `standard_uber_4lyr_dpm_dm_hbb` (`61e09df7`),
+`standard_uber_4lyr_pxm_hbb_fixuv1` (`b21f1ba5`) and
+`standard_uber_4lyr_spx_dm_hbb` (`360e396b`) share **17 slots** (slot names
+confirmed from recovered parameter names; data-map pairing measured: each
+data map goes with one layer's diffuse in every material, 7/7 to 13/13):
+
+| Slots | Meaning |
+|---|---|
+| p14, p12, p9, p13 | `diffusetexture_layer0..3` |
+| p15, p10, p11, p7 | `bumptexture_layer0..3` |
+| p4, p0, p5, p1 | unnamed data maps of layers 0..3 (BC7 or RGBA8: R ≈ 0, G about constant, **B a blobby height-like map**, A varies; `hbb` = height-based blend) |
+| p2 | `lookuptexture` (weights) |
+| p3 | `grassmasktexture` |
+| p8, p16 | `tintbumptexture`, `tinttexture` (a generic tiling colour map, not a section map) |
+| p6 | no texture bound |
+
+A slot is a layer **index**, not a surface type: one texture can be layer 1
+in one material and layer 3 in another.
+
+- **Weights** (measured): the lookup is one BC7 2048² texture per 512 m
+  section on TEXCOORD_0, which is exactly section position / 512 on all
+  primitives. Alpha is 255; R + G + B ≤ 255 (99th percentile 258 from BC7
+  rounding, median 229).
+- **Channel to layer:** R, G, B → layers 0, 1, 2 (measured by a seam test
+  over 19.6 K vertex pairs shared by two materials: the identity order
+  scores 11,142 against 10,219 for the next; where a channel weight is
+  above 0.5 its slot agrees across the seam 66 / 74 / 92 % of the time).
+  **Layer 3 = 1 − (R + G + B)** (inferred, low on its own: the remainder is
+  small and mostly at section borders, but the render check below supports
+  it).
+- **Reference:** a section's `_slod` tiles share one baked 1024² colour map
+  (`terrain_lod_2lyr_grass_wetness`); a top-down render from the decoded
+  fields matches its layout (section `s05_w19`).
+- **Detail UV** (measured on samples): TEXCOORD_0 × 64 (one repeat per 8 m)
+  by default. TEXCOORD_1 on `61e09df7` is world-planar at 8 m in places
+  (e.g. u = x / 8 − 1151.5, v = −z / 8 − 255.5 on `s05_w18_001`) and
+  unwrapped elsewhere; on `b21f1ba5` ("fixuv1") it is constant. TEXCOORD_2
+  is a copy of TEXCOORD_0 or constant. COLOR0 RGB is 50–230 (not weights),
+  A always 0.
+
+**Per-layer constants** (measured; meanings unknown): vec4s in the shader's
+constant block ([§7.6](07-models.md#76-shaders-materials)) whose component k
+depends on layer k's diffuse texture (functional-dependency diagonal
+0.83–1.00 over 1,638 materials), which independently confirms the layer
+numbering:
+
+| Hash | Float offset | Equal across a seam (same / different layer texture) | Values |
+|---|---|---|---|
+| `c35e27af` | 56 | 100 % / 44 % | 1.0–1.7 |
+| `627ce8ae` | 40 | 99 % / 71 % | 1 or 2 |
+| `781f7100` | 100 | 98 % / 10 % | 0.35–0.75 |
+| `9a4a3781` | 88 | 92 % / 14 % | 0–0.175 |
+| `f354f896` | 112 | 85 % / 13 % | 1–16 |
+| `9ede7c13` | 124 | 83 % / 23 % | 1–14 |
+
+A tiling test of `c35e27af` was undecided, and a brightness test against
+the baked map had no power.
+
+### Render check
+
+(2026-11-23; from rendering exported minigame levels and comparing with
+footage, so these are consumer-side confirmations, not shader decodes.
+Layers are numbered 0–3 as above.) Shaders `61e09df7` and `b21f1ba5`:
+
+| Item | Finding | Confidence |
+|---|---|---|
+| layers | four colour textures | high |
+| weights | RGB of the lookup texture on TEXCOORD_0 give layers 0–2; layer 3 = 1 − R − G − B. A 4 × 4 lookup reading RGB = 0 (`3fb347dace547ef9`) shows layer 3 only, as intended | high |
+| tint | a tint texture on TEXCOORD_0 multiplied over the result; the exact maths is open (`colour × tint × 2` at partial strength looks right) | medium |
+| height blend | each layer's data texture carries a height (blue channel); the higher layer wins at a boundary | medium |
+| tiling on 512 m map sections | TEXCOORD_0 × 64 = one repeat per 8 m | high |
+| set pieces | the detail UV varies per material (section-tiled, TEXCOORD_1, TEXCOORD_2 or none); road lookups are tileable and run TEXCOORD_0 to about 13.8, so they need repeat wrapping | high |
+
+Counts: a mountain-valley level of the minigame pack has 169 tiles and
+1,675 four-layer materials, covering 6,022 of its 6,023 ground meshes;
+three set-piece levels have 228, 45 and 10 (one of them 907 meshes: 697
+section-tiled, 207 with no detail UV, 3 on TEXCOORD_1).
+
+**Missing layer texture** (high): on tiles `s05_w18`, `s05_w19` and
+`s05_w20` of the minigame pack, 24 four-layer materials (126 meshes)
+reference one layer texture that is in no texture store on disk; the other
+three layers, the weights and the tint are present.
+
+Open: per-layer constant `c35e27af` (1.0 on 108 of 137 layers here; tiling or
+intensity), the data-map channels, what COLOR0 RGB does, the tint maths, and the projection when a material has no
+detail UV.
+
+## Two-layer rock shader `prop_2lyr_batch`
+
+(2026-11-23; render check.) Shader `89c8fe07`: base atlas on TEXCOORD_0, a
+tiling second layer on TEXCOORD_1, **weight = 1 − COLOR0.a** (unpainted
+vertices, A = 255, show the base only; with the weight not inverted every
+unpainted rock is fully mossed). High. One level places 15,656 rock meshes
+from 32 models and 41 materials; mean COLOR0.a is 0.63. A dirt overlay
+uses TEXCOORD_2, which on rocks is parked at a constant, so the dirt is
+uniform (low–medium).
 
 **Normal maps are DirectX convention (green = +Y down)** (confirmed by an
 integrability test on 270 of 300 maps). Invert G for glTF/OpenGL.
@@ -167,6 +266,20 @@ Tags in `12f85293` are joaat of the lower-case tag name: `002f77d9` =
 the preset applies to** (joaat of the full drawable name); this is how a
 head gets its face ([§7.5](07-models.md#ped-heads-face-textures-confirmed)).
 Set and preset names do not resolve.
+
+### Animal shader `ped_standard_animal`
+
+(2026-11-23.) On shader `295b85a9` the colour slot can hold a **region
+mask instead of colour** (high): on the white-tailed deer
+(`crm_deer_whitetailed_m_00` / `_f_00`) the BC1 texture is linear data with
+G = coat, B = white parts (belly, tail, throat, eye ring), R = dark parts
+(nose, hooves, eyes). 78 of the shader's 1,384 materials use such a mask;
+997 bind a real sRGB colour texture (the bald eagle among them). The coat
+colours are not stored with the model: material constants from offset 64
+(including a 16 × vec4 block `f08653a5`) and texture slots 2 and 3 are
+filled at runtime. Per-model variation lists exist (buck 14 entries, doe 8,
+eagle 4) but are unnamed hashes. Open: where the coat colours come from and
+which variation a spawn uses.
 
 ### Tint palettes
 

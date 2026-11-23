@@ -258,7 +258,17 @@ brows, mouth) and red / green UV remap maps.
   skeleton, 5,155 weights stay unresolved on the eagle).
 - **Bind pose.** Animals have a 180° yaw (quaternion [0, 1, 0, 0]) on
   `SKEL_ROOT` in the bind pose that the clips do not carry, so an animated
-  animal faces the opposite way from its bind pose.
+  animal faces the opposite way from its bind pose. The same holds for
+  humans (2026-11-23): clips face −Z, the bind pose +Z. The root sits above
+  the feet: about 1.02 m on an adult male, 0.72 m on the white-tailed deer.
+- **Shared skeleton** (2026-11-23): a character built from generic male
+  parts is one skin of 814–844 joints; body locomotion clips animate 125–139
+  of them (174–201 tracks), so one animated skeleton can drive many
+  instances. Some idle dictionaries are empty stubs (one clip, 0 bones,
+  duration about 0) next to populated `…@idle@stance_neutral` ones. The
+  arcade zombie attack set
+  `gameplay@melee@unarmed@arcade@zombie@standard@attack` has 8 clips of
+  1.8–2.7 s on 125 bones.
 - **Fur placeholders.** `*_fur_NN` parts are 3-vertex stubs, each with a
   full copy of the skeleton (white-tailed deer: 1,262 joints with fur, 296
   without).

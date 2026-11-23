@@ -171,9 +171,10 @@ frequency) pairs. Cumulative value 0 is reserved: a symbol whose
 cumulative frequency would be 0 gets (frequency − 1, cumulative 1). Exact
 division inside a segment finds the same symbol as the hardware's
 comparator chain and reciprocal multiply for every cf of every model. The
-(base, frequency) values are not derived here: they come from the
-vendor's own published hardware description of the decoder, and no formula
-that reproduces them is known.
+(base, frequency) values for all 144 models are in
+[§6A.1](06a-bcpack-tables.md#6a1-static-rans-models) (copied from the
+vendor's published hardware description; no formula that reproduces them
+is known).
 
 **Lane feeder.** Lanes run on a common clock with two phases:
 
@@ -220,7 +221,9 @@ directly; detile as for a zlib chunk.
 - Presets: 254 of 256 slots fitted; slots 0 and 4 are never referenced.
   Codebook: two fits on disjoint halves of the data agree on 248 of 256
   entries; the other 8 are 4 rare mirror pairs (229/235, 230/231,
-  247/248, 254/255). The fitted values themselves are not published here.
+  247/248, 254/255). The preset slots and codebook are in
+  [§6A.2](06a-bcpack-tables.md#6a2-bc1-preset-slots) and
+  [§6A.3](06a-bcpack-tables.md#6a3-bc1-selector-quadrant-codebook).
 
 **Prediction (BC1, BC3, BC7).** Every block is coded as residuals against a
 reference: the zero state (distance 0), block `i − d` of the same chunk in

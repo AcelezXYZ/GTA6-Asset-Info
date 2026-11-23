@@ -164,8 +164,9 @@ These are categories, not material names.
 against 0.13 % of area, in 5,535 clustered bounds files, probably a gravel
 variant (verges, yards). The rest falls on the generic default id `317b`
 and grass ids; the track geometry itself mostly has no up-facing collision
-under the sample points. Not yet checked against the names of
-[§13.2](#132-surface-ids), which would replace these labels.
+under the sample points. Neither id resolves with the formula of
+[§13.2](#132-surface-ids) from the readable material XML, so their names are
+in the part that is not read, and the labels stay inferred.
 
 ## 13.4 Fragment physics
 

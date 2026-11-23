@@ -32,13 +32,19 @@ hash +0x68, flags +0x80, four vec3 extents +0x90…+0xC0, `entities` array
 | `a687ac89` | numChildren | 0 on HD/orphans; 1–16 on LODs |
 | `bf74dfa7` | lodDist | −1 = use the archetype's `lodDist` |
 | `ca974bcd` | childLodDist | 0 on HD |
-| `2691f019` | priorityLevel (joaat checked) | see below |
-| `84799847` | unknown; **not** priorityLevel as first labelled | −1 on orphans |
+| `2691f019` | priorityLevel (joaat checked) | 0 on every entity |
+| `84799847` | unknown; **not** priorityLevel as first labelled | −1 to 10; −1 on orphans and SLOD4 (below) |
 | `0dc5f270`, `540ca436` | AO multipliers | usually 255 (inferred) |
 
-*Correction (2026-11-22):* `priorityLevel` is `2691f019`, not `84799847`.
-The "0–3" range given earlier for that row has not been re-measured and
-may belong to either field.
+*Correction (2026-11-22; measured, full census of 30,789 map files and
+2,250,722 entities):* `priorityLevel` is `2691f019`, not `84799847`, and it
+is 0 on every entity at every LOD level. Neither field is 0–3 as first
+given. `84799847` runs from −1 to 10 (−1: 982,890; 0: 611,731; 1: 343,406;
+2: 177,316; 3: 84,839; 4: 33,923; 5: 12,547; 6: 3,237; 7: 666; 8: 123;
+9: 41; 10: 3). It is −1 on every ORPHAN_HD (970,787) and SLOD4 (352)
+entity; HD uses 0–10, mostly 0–3 (6,371 at −1); LOD 0–3, SLOD1 and SLOD2
+0–1, SLOD3 only 0, each with a few −1. So it narrows with LOD level and is
+−1 where an entity has no LOD parent; its meaning is unknown.
 
 The parent index points into the entities of the map file whose name hash
 equals this file's parent hash. Checked on 400 child files: every link goes
@@ -170,7 +176,7 @@ optionally with the covered test.
 
 ## Open questions
 
-- The name and range of `84799847`, and the range of `priorityLevel`.
+- The name and meaning of `84799847`.
 - Whether any field marks indoor dressing or proxies.
 - The 64-bit per-archetype hash at entity +0x08.
 - Where prefab groups (`35abc248`) are placed.

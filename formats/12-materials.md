@@ -285,11 +285,35 @@ variation (`65121749` id, `Scale`, an `fb5bb20d` list of {`65121749` id,
 `StateName`} links); `f795e8ba` an item record (tag map `12f85293` {Key,
 Item[u32]}, Category, `080eec39`, `e13ebaf8`, an `ebacf18c` list of
 `37e52277`); `37e52277` a state / texture set (`147fdab5` with 64-bit
-texture hashes: normal, detail …). Key `4bfd27dd` holds the drawable, in
-these two files always a head (19 and 30 items, all resolving to `head_*`
-drawables; high). Open: where clothing drawables are named; the same
-structs appear in hundreds of other resources, keyed by shared Category
-ids.
+texture hashes: normal, detail …). In these two files key `4bfd27dd`
+always names a head (19 and 30 items, all resolving to `head_*` drawables;
+high).
+
+**How wardrobe items link to drawables** (2026-11-23; corrects the reading
+above that `4bfd27dd` is the only drawable key):
+
+- The `12f85293` map is a **tag map**; keys are tag types and values are
+  joaat of a word or of a drawable-name prefix (`tanktopcasual_fr1_028` for
+  `tanktopcasual_fr1_028_disheveled_un_full`). `4bfd27dd` head drawable,
+  `023e5a2f` hair / brows / body hair, `2a8cdb1d` garment name or a shape
+  word (high for these three); `a9473ab4` style (casual, sports, swim …),
+  `e60617ae` colour, `fe330559` length, `928c398d` front / back, `3a57a0fc`
+  body type (medium, named from the words they hold).
+- A colour variant's `080eec39` (sometimes `e13ebaf8`) is its parent / base
+  item id; Category is the slot (eyes, hair, hats, ArmorTorso, Helmets,
+  Gilets, teeth …) (high).
+- **Drawable link:** the 64-bit texture hashes in an item's `37e52277` sets
+  (its own and its parents') are its drawable's material textures, so the
+  model sharing the most of them is the drawable (6 of 6 on
+  `tanktopcasual_fr1_028`; 84 of 118 zombie variations resolve). High for
+  garments, lower for eyes and teeth, which share textures across body
+  types.
+- Each variation is a clothing set or a head set (head, eyes, teeth,
+  eyecap).
+
+Open: how the game pairs clothing and head variations, the `StateName`
+states, and most scalar fields of `f795e8ba`; the same structs appear in
+hundreds of other resources, keyed by shared Category ids.
 
 ### Animal shader `ped_standard_animal`
 

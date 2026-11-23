@@ -195,7 +195,9 @@ Distances as BC7 ([§6.3](#63-bc7-blocks-codec-0x1c)).
   BCPack-only textures 58 % → 62 %). The last 17 endpoint slots (81,093
   blocks, 1.56 %) were then fitted, 15 against the next smaller mip and 2 by
   edge continuity (below): edge cost 1.81 M → 36.5 K, reference scores
-  unchanged (medium-high; the 2 edge-fitted slots checked visually only).
+  unchanged (medium-high for the 15; **medium-low for the 2 edge-fitted
+  slots**: their relative structure is right, but their absolute level is
+  not verified, see the limit of edge continuity below).
   With perfect presets the reference score would top out at 94.3 % of
   blocks within 0.15 stops.
 - **Open:** the x prediction after a change from mode 12 to mode 11 is
@@ -238,6 +240,19 @@ mip 3 under a mip 1 with a logo), so they cannot be scored.
   13 BC5 slots (1,811 blocks in 18 chunks, 15 of them in texture arrays)
   were fitted this way, about 6 / 255 per edge pixel on the large slots
   (medium: no reference mip; slots with 1–2 blocks are weakly determined).
+- **Limit of edge continuity** (2026-11-23, measured): it cannot fix a
+  constant per-channel offset when (nearly) every block of a texture is
+  rooted at the slot being fitted, because a uniform shift leaves all
+  edges continuous. A first edge-only BC7 fit of the 34 slots gave mip 0 vs
+  mip 1 agreement of median 27 dB over 71 textures, 21 under 20 dB, with
+  blue-channel biases of +30 to +105 and −129 on the bad ones (red and
+  green fine). The BC5 slots are anchored (their blocks are a minority
+  inside fitted neighbours, e.g. 440 of 4,096 per chunk), so they stay
+  medium. The 2 edge-fitted BC6H slots are mostly unanchored (64,431 of
+  65,536 and 16,384 of 16,384 blocks rooted at the slot, in lighting
+  textures with mip 0 only); the render has a black background and smooth
+  glow, but their absolute level is unknown. BC7 is being refitted against
+  the decoded next smaller mip instead, which pins the level.
 - **BC7:** 34 endpoint preset slots (1.05 % of blocks) are not fitted yet;
   the order of the mode 0 / 2 headers is fitted (medium).
 

@@ -145,6 +145,10 @@ true count is stored is unknown; it does not map to a single bit field.
   (format, tile mode) pair in the stores is left undecodable. The 2-byte
   `SW_64KB_D` order is x-first by the block shape; square samples cannot
   tell it from its transpose (inferred).
+- **R16_UNORM** (DXGI 56; also 53 and 57; 2026-11-23, high): 2 bytes per
+  texel, laid out like the other 2-byte formats. The minigame pack's 12
+  water height maps use it (the images are coherent height fields).
+  Whether any texture uses the signed form for real data is open.
 - **R16_FLOAT array at twice its size** (one texture, `fd954c597b21d41c` in
   `ttdb_graphics`: 256 × 32, 8 slices, tile mode 1, one mip; confirmed,
   2026-11-21). Each slice takes 32 KiB instead of 16 KiB: every other KiB is

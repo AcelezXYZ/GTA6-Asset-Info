@@ -305,12 +305,14 @@ mip 3 under a mip 1 with a logo), so they cannot be scored.
   29 index slots that have no plain reference were refitted index-aware
   (full pixel error with the decoded indices) against the decoded
   neighbour mips in both directions; slots with a plain reference stayed
-  frozen. The reference set is unchanged (87.7 % of blocks within 0.15
-  stops, 28.1 dB). On textures stored only as BCPack, agreement rose from
-  61.1 to 65.0 % against the larger neighbour and from 63.4 to 66.8 %
-  against the smaller one; mip 0 against mip 1 on the 89 textures in the
-  quality table above: median 18.0 to 18.6 dB, 9 gained more than 1 dB,
-  none lost more than 1 dB. Medium: the targets are themselves BCPack
+  frozen. Repeated for five decode-and-fit rounds, it converged: rounds 4
+  and 5 changed nothing on the independent check, so the method is
+  exhausted. The reference set is unchanged (87.7 % of blocks within 0.15
+  stops, 28.1 dB). On textures stored only as BCPack, good blocks against
+  the larger neighbour rose from 61.1 to 71.4 %; mip 0 against mip 1 on
+  the 89 textures in the quality table above: median 18.0 to 19.6 dB,
+  under 20 dB 58.4 to 51.7 %. (After one round the figures were 65.0 % and
+  18.6 dB.) Medium: the targets are themselves BCPack
   decodes, so this shows self-consistency, not ground truth. BC6H remains
   the weakest codec: plain BC6H scores 29.1 dB on the same measure, so
   about 10 dB is still preset error or an unknown rule.

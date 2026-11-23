@@ -17,7 +17,7 @@ lights, interiors, paths and junctions all use it.
 | 0x30 | ptr → enum table |
 | 0x38 | ptr → instance table, 16 bytes per block |
 | 0x48 | u16 struct count, u16 enum count, u16 instance-block count |
-| 0x4A | u16 enum count; also used as the **root block index** (1-based) |
+| 0x4A | u16 enum count; also used as the **root block index** (1-based). *A later decode (2026-11-23, confirmed on the minigame pack) finds +0x4A is only the enum count: the root is the struct no other struct references. Kept both until checked across archives.* |
 
 ## Tables (confirmed)
 

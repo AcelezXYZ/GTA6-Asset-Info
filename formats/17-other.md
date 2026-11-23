@@ -78,6 +78,11 @@ graphics size as a u32 at `+0xA0`. The graphics block has a
 archive families. Observed hierarchy words carry a 24-bit value in
 bits 0–23 and a child count of 0–4 in bits 24–31.
 
+In the minigame pack (2026-11-23) the version word is `06000281` and a
+bounding box sits at `+0x110` / `+0x11C`. The node data is a private
+hardware layout (`0x81` fill, big-endian child counts 2–4) and is not
+decoded.
+
 `story000_bvh4.rpf` contains four zlib-compressed XML records.
 Its content and setup records reference terrain and merged BVH packs
 for mounting. Joining archived BVH4s back to meshes and rehydrating
@@ -402,6 +407,35 @@ not reference streams by hash; their node bytecode is not decoded. The
 pack's PSOs are dialogue, zones, lights and fog, and its 787 meta resources
 are map data: no minigame tuning tables are in data files.
 
+### Audio object bodies
+
+(2026-11-23.) The data block has `0x045a88ea` at +8; after it come two
+tables of {u32 length, count, …} and the name index. **Each object's first
+byte is its class.**
+
+- **Sound file (schema 166).** Classes follow the usual numbering: 12
+  simple, 6 wrapper, 14 randomized, 7 sequential. **References between
+  objects are u32 indices into the objects in data-offset order** (high: 16
+  of 17 multi-child groups share a bank in that order, against 1 of 19 in
+  hash order).
+  - Simple sound body: container hash (the bank), wave hash (**its low 29
+    bits are the stream id in the bank**), u8, u8, u8 n, n references
+    (high: 2,050 of 2,051 match a real stream; the trailing references'
+    role is unknown).
+  - Randomized, sequential and class-8 sounds end with u8 n, n child
+    references. A wrapper's last 12 bytes are child, u32, reference.
+- **Sound header** (every class except 17, 49, 56 and 57; high: 4,392 of
+  4,395 headers decode, each simple sound's container starts where its
+  header ends, 2,051 of 2,051, and 2,015 of 2,016 wrappers then have
+  exactly 12 body bytes): byte 1 is a mask, each set bit adds one sub-mask
+  byte, and each sub-mask bit adds a fixed-size field. (1,0) is 8 bytes of
+  2-bit tristate flags; (2,4), (2,5), (3,2), (4,5) and (5,3) are 4 bytes;
+  (3,7), (4,2) and (4,7) are 1 byte; the rest 2 bytes. (0,0) and (0,2) are
+  nested u8 masks whose u16 values come after all other header fields.
+- Open: field meanings ((1,2) looks like a volume in mB), most other class
+  bodies, and the other schemas (game objects, speech and others use a
+  different header).
+
 ## Animation
 
 `anim.rpf` holds two families. Bodies in the low region of the archive are
@@ -428,6 +462,11 @@ or the end of a chain.
 | `+0x04` | `u32` | Clip set hash, matching clip record `+0x4c` |
 | `+0x08` | ptr | Points 0x10 bytes before the clip record base used below |
 | `+0x10` | ptr | Next entry in the same bucket |
+
+**Map-pack clip dictionaries** (2026-11-23, confirmed on the minigame
+pack): single-animation clips have the animation pointer at `+0x68` and
+start / end / rate at `+0x90` / `+0x94` / `+0x98`. Short names are stored
+inline when byte 15 has bit `0x80` set (length in the low 7 bits).
 
 A full-archive walk of the bucket chains found 52,912 dictionaries and
 294,794 entries. The bucket selection formula is unknown. The stem hash
@@ -834,6 +873,21 @@ title at `+0x0C`, a u32 credit count at `+0x60`, then 8-byte credits
 The title hash is joaat of the **lowercased** title with seed `0xC3CCF6AD`
 (804/804 titles, confirmed). AWC stream ids use unseeded joaat of the title, so
 the two never coincide.
+
+## Script data documents
+
+(2026-11-23; structure high.) `script.rpf` holds 1,012 PSO files that are
+**binary XML documents**. An element has a name hash, first child, next and
+previous sibling, parent, first attribute and attribute count. An attribute
+has a name, a type (1 vector index, 2 f32 bits, 3 i32, 4 bool, 5 string
+index) and the joaat of the value text. With the current dictionary 36 % of
+names and 7 % of string values resolve. The string block and the compiled
+script code (51.7 MB in `story000_script.rpf`) have an entropy of
+7.85–8.0 and no compression headers, so they look encrypted; not decoded.
+
+**Resource lookup tables** (purpose unknown): two Swiss-table hash maps, 16
+control bytes equal to each key's low byte, then 32-byte slots holding a
+u64 key and a value pointer.
 
 ## PSIN scene placements
 

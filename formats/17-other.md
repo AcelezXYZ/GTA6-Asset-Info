@@ -457,17 +457,39 @@ byte is its class.**
     *Retracted (2026-11-23):* an earlier, smaller sample also listed class
     16 at 15, class 30 at 25 and class 48 at 8. On the full file those are
     not references: class 16 at 15 is a bit mask (`0x0e`, `0x1e` …
-    `0x1fe`) and the other two are constants. Class 16 (9,093 objects)
-    instead holds hashes that match no object name, probably parameter
-    names (inferred). With these references about half of the main file's
+    `0x1fe`) and the other two are constants. With these references about half of the main file's
     sounds reach a simple sound (the earlier sample gave 2,228 of 2,385
     non-simple sounds).
+  - **Class 16 body** (2026-11-23, high: 8,248 of 9,093 objects fit): u8 0,
+    u8 k, three u32 name hashes (matching no object), u8 bit count m, u32
+    mask with m bits set from bit 1 (`0x0e`, `0x1e` … `0xffe`), u32 value,
+    zero padding, u8 2, u8 c = floor(m / 2), then c one-byte slots. All
+    26,329 slots are `0xff` (empty), so the file holds no child links for
+    this class; they are probably filled at run time (inferred). Open: k
+    and the three hashes.
   - **The main sound file is split** (2026-11-23, high): its 241,999
     objects are carved as two entries. Between them, past the object data
     and inside the file's second hash table, sit three 64 KiB chunks that
     are not zlib (entropy 8.0 bits per byte). Only that table's length is
     needed: joining the two pieces and zero-filling the gap parses the
-    whole file. What the chunks hold is unknown.
+    whole file. What the chunks hold is unknown. The same pattern occurs
+    in a schema-18 file in `story000`: 52 stored chunks (3.25 MB) inside
+    its second table, after the objects (high).
+- **Game objects: classes 50–77** (2026-11-23, high). They have no sound
+  header: the class byte is followed by 4 bytes of 2-bit flags (`0xaa` =
+  all unset), then the body. Class 54 starts with its own name hash (2,557
+  of 2,557). Links to sounds (data-order indices as above, no bad
+  references; 1,928 links in the main file):
+
+  | Class | Sound references | Fit |
+  |---|---|---|
+  | 51 | u16 count, then the references | 130 of 130 |
+  | 52 | u16, u16 count, then pairs (reference, reference or `0xffffffff`) | 87 of 87 |
+  | 56 | at body offsets 6 and 10 | 6 of 6 |
+  | 61, 62, 64 | at 0 | high |
+  | 68 | at 14 | high |
+
+  Their other fields are unknown.
 - **Sound header** (every class except 17, 49, 56 and 57; high: 4,392 of
   4,395 headers decode, each simple sound's container starts where its
   header ends, 2,051 of 2,051, and 2,015 of 2,016 wrappers then have
@@ -489,10 +511,10 @@ byte is its class.**
   | 2 bytes | (1,2)–(1,6), (2,0)–(2,3), (2,6), (2,7), (3,0), (3,1), (3,3)–(3,6), (4,1) |
   | 1 byte | (3,7), (4,2), (4,6), (4,7), (5,0) |
   | nested | (0,0), (0,2): a mask byte, then 2 bytes per set bit at the end |
-  | unknown | (0,5), (0,7), (1,7), (4,3), (4,4), (5,5), (6,7), (7,0), (7,2), (7,3), (7,7); seen mostly in classes 51–77, which are not sound classes |
+  | unknown | (0,5), (0,7), (1,7), (4,3), (4,4), (5,5), (6,7), (7,0), (7,2), (7,3), (7,7); seen mostly in classes 51–77, which are not sound classes; since those game objects have no sound header (below), these may be artefacts of reading them as one (inferred) |
 - Open: field meanings ((1,2) looks like a volume in mB), the other body
   fields, the unknown header field sizes, the gap chunks of the split
-  file, the headerless classes 17, 49, 56 and 57, and the other schemas
+  file, the headerless classes 17, 49 and 57, the game-object fields, and the other schemas
   (game objects, speech and others use a different header).
 
 ## Animation

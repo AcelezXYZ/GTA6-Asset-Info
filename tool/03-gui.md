@@ -182,6 +182,29 @@ first, as above):
   `<work>/gui_settings.json`. The process figure includes memory the
   graphics driver commits for GPU buffers and textures.
 
+- **Coverage fallbacks** (2026-11-23): a SLOD placement (or a LOD with HD
+  fallback off) with nothing finer to hand over to keeps drawing nearer
+  than its band, but only on pixels no real surface covered: real models
+  write stencil 1, terrain, ocean and sky 0, and the fallbacks draw last
+  with stencil = 0 and back faces culled. This needs a depth format with
+  stencil; without one they draw plainly. LOD1-level fallbacks are left
+  out (about 1,375 extra placements at high cost about 25 % fps). The
+  whole-map terrain's near tiles draw in the same pass, 2 m above the
+  ground estimate, so they never cover real streets and replace pale SLOD
+  slabs with the 2D map colours; water cells stay under the sea plane.
+  [Gaps](../formats/09-placements.md#coverage-gaps-near-the-camera-2026-11-23);
+- **map cells**: far placements are merged per grid square and LOD level
+  (128 m for HD up to 2,048 m for SLOD) with 64 px BC3 texture arrays, each
+  placement's distance range tested in the vertex shader; cached under the
+  work folder (4 GB cap, old cache formats deleted at start).
+  `SIXNG_MAP_NO_CELLS=1` turns them off. Downtown (rough, busy machine):
+  35 fps with cells against 12 without, p99 frame 61 against 274 ms;
+- **near SLOD textures** load at full size; SLOD glass is drawn dark and
+  mostly opaque, and texture-less SLOD placeholders are hidden;
+- debugging: `SIXNG_PICK_ALL=1` with `--pick x,y` lists every placement on
+  the ray (model, LOD level, render flags, load state, materials, ground
+  probe); `--no-terrain` hides the far field so real gaps show.
+
 Coverage notes (confidence: high, checked on downtown): about 88 % of
 LOD-level placements and most SLOD placements carry no model link or only
 a placeholder unit-cube bounding box, and SLOD ground tiles ship without

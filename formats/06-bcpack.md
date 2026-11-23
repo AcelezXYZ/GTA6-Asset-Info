@@ -54,6 +54,28 @@ in the 57 stores, 0 failures.
 The main-store counts match the codec table of [§5](05-ttpf.md); the
 content-pack stores add BC1 2,705, BC5 8 and BC7 47 chunks.
 
+**Whole-install accuracy** (2026-11-23; numbers high, reading inferred):
+every texture whose mip 0 lies in BCPack chunks (37,226 textures, slice 0,
+at least 2 mips), mip 0 box-downsampled against mip 1, RGB PSNR on the
+8-bit decode, with every 40th plain texture as a baseline.
+
+| Codec | Plain median | BCPack median | BCPack textures | BCPack under 20 dB |
+|---|---|---|---|---|
+| BC1 | 37.1 dB | 33.5 dB | 35,563 | 0.8 % |
+| BC3 | 50.3 dB | 34.3 dB | 16 | 0 % |
+| BC4 | 54.8 dB | 47.0 dB | 40 | 0 % |
+| BC5 | 44.4 dB | 44.2 dB | 85 | 0 % |
+| BC6H | 29.1 dB | 18.0 dB | 89 | 58 % |
+| BC7 | 40.9 dB | 32.8 dB | 1,433 | 6.7 % |
+
+BC1 has no fitted tables, so its 3.6 dB gap is a population effect (BCPack
+mip 0s are larger and more detailed), not decode error. Allowing for that,
+BC5 is at plain quality and BC7 about 4–5 dB short. BC6H is weakest, partly
+because the measure clips HDR to 8 bits (plain BC6H reaches only 29 dB)
+and partly real; how much is each is open. The plain baselines contain
+real outliers (9.3 % of plain BC7 under 20 dB, where the mips differ).
+No exact preset values are published anywhere found.
+
 ## 6.1 What is solved
 
 **Lanes (confirmed for the tested chunks).** A lane is an independent

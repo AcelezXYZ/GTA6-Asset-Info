@@ -301,6 +301,19 @@ mip 3 under a mip 1 with a logo), so they cannot be scored.
   textures outside the fit set); medium per slot. Six textures with no
   plain reference drop below 20 dB, so the slots they use are still not
   the true values; the exact presets remain unknown.
+- **BC6H refit of unreferenced slots** (2026-11-23): the 111 endpoint and
+  29 index slots that have no plain reference were refitted index-aware
+  (full pixel error with the decoded indices) against the decoded
+  neighbour mips in both directions; slots with a plain reference stayed
+  frozen. The reference set is unchanged (87.7 % of blocks within 0.15
+  stops, 28.1 dB). On textures stored only as BCPack, agreement rose from
+  61.1 to 65.0 % against the larger neighbour and from 63.4 to 66.8 %
+  against the smaller one; mip 0 against mip 1 on the 89 textures in the
+  quality table above: median 18.0 to 18.6 dB, 9 gained more than 1 dB,
+  none lost more than 1 dB. Medium: the targets are themselves BCPack
+  decodes, so this shows self-consistency, not ground truth. BC6H remains
+  the weakest codec: plain BC6H scores 29.1 dB on the same measure, so
+  about 10 dB is still preset error or an unknown rule.
 - **BC7:** the order of the mode 0 / 2 headers is fitted (medium).
 
 **BC1/3/4/5:** Confirm the disputed or fitted endpoint presets and selector

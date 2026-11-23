@@ -7,7 +7,8 @@ understood, and what is still unknown.
 Everything here was worked out from the data itself: headers, statistics
 over many samples, and checking decoded output by eye. Nothing has been
 confirmed against game code or official documentation. This repository holds
-documentation only: no game files, no extracted assets, no keys. Read
+documentation (plus the original-code [scripthookvi/](scripthookvi/README.md)
+framework): no game files, no extracted assets, no keys. Read
 [LEGAL.md](LEGAL.md).
 
 ## Formats
@@ -67,6 +68,13 @@ differ.
 - **Vehicle data**: colours, wheel choice and handling are decoded, but how
   the wheel scale sizes the shared wheel models, the secondary colours and
   the liveries are not.
+
+## ScriptHookVI
+
+[scripthookvi/](scripthookvi/README.md) is a base framework for a
+ScriptHookV-style script host (loader, script runtime, native interface,
+plugin SDK). It is a skeleton: it builds but has no game patterns yet, so it
+does not attach to the game. It is separate from the format notes above.
 
 ## Conventions
 

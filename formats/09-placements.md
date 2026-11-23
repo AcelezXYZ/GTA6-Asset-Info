@@ -32,8 +32,19 @@ hash +0x68, flags +0x80, four vec3 extents +0x90…+0xC0, `entities` array
 | `a687ac89` | numChildren | 0 on HD/orphans; 1–16 on LODs |
 | `bf74dfa7` | lodDist | −1 = use the archetype's `lodDist` |
 | `ca974bcd` | childLodDist | 0 on HD |
-| `84799847` | priorityLevel | 0–3; −1 on orphans |
+| `2691f019` | priorityLevel (joaat checked) | 0 on every entity |
+| `84799847` | unknown; **not** priorityLevel as first labelled | −1 to 10; −1 on orphans and SLOD4 (below) |
 | `0dc5f270`, `540ca436` | AO multipliers | usually 255 (inferred) |
+
+*Correction (2026-11-22; measured, full census of 30,789 map files and
+2,250,722 entities):* `priorityLevel` is `2691f019`, not `84799847`, and it
+is 0 on every entity at every LOD level. Neither field is 0–3 as first
+given. `84799847` runs from −1 to 10 (−1: 982,890; 0: 611,731; 1: 343,406;
+2: 177,316; 3: 84,839; 4: 33,923; 5: 12,547; 6: 3,237; 7: 666; 8: 123;
+9: 41; 10: 3). It is −1 on every ORPHAN_HD (970,787) and SLOD4 (352)
+entity; HD uses 0–10, mostly 0–3 (6,371 at −1); LOD 0–3, SLOD1 and SLOD2
+0–1, SLOD3 only 0, each with a few −1. So it narrows with LOD level and is
+−1 where an entity has no LOD parent; its meaning is unknown.
 
 The parent index points into the entities of the map file whose name hash
 equals this file's parent hash. Checked on 400 child files: every link goes
@@ -169,8 +180,30 @@ matches remain ambiguous.
 `35abc248` (32 B, one per file, 6,304 files) is a named entity group
 (prefab) in group space; no map data places these groups.
 
+## 9.5 Render hints and indoor dressing
+
+**Proxies and placeholders** (naming rules, checked by exporting examples;
+medium): `vfx_proxy` = `*vfx*proxy*`, `vfx_dummy*`; `light_proxy` =
+`*_lit_proxy`, zero-size geometry; `interior_proxy` = `*_pxy`,
+`*shell_proxy`, `int_*_proxy` (stand-ins for interior shells);
+`shadow_proxy` = `*_shadow`; placeholder = no model resolved. Shop items
+`gmt_*_proxy_*` and cables `*_occl_*` are real geometry. Models with bounds
+under 1 cm in two axes are degenerate. No flag bit has been looked for.
+
+**Indoor-only entities: no marker found** (measured on a 1/6 sample;
+negative). Furnished rooms (ceiling and wall lights, chairs, tables,
+`int_*`) are ordinary world entities mixed with outdoor props; only 3.9 %
+lie inside an interior instance. Of 45 K indoor-named and 68 K
+outdoor-named HD entities: flag bits 3 and 18 are indoor-only but rare
+(1–4 %); ORPHAN_HD is 48 % against 9 %; map-file fields do not differ and
+files are not grouped by indoor share; "covered" (collision more than 3 m
+above) is 43 % against 20 %. A converter has to use a name heuristic,
+optionally with the covered test.
+
 ## Open questions
 
+- The name and meaning of `84799847`.
+- Whether any field marks indoor dressing or proxies.
 - The 64-bit per-archetype hash at entity +0x08.
 - Where prefab groups (`35abc248`) are placed.
 - 785 map files whose parent hash does not resolve.

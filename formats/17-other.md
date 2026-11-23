@@ -806,6 +806,21 @@ Open: the exact 0x46 / 0x81 ops, the lower-LOD rigs, the input names, and
 why the belly spikes on some male T-shirts whose palettes name bones in
 neither skeleton.
 
+**GPU-side leads** (strings and counts measured; the reading is a guess):
+compiled-shader strings name `ped_morphable_model_cs` (`CS_MorphableInit`,
+`CS_MorphableShapeSolve`, `CS_MorphableReconstructNormals`, next to
+`ped_skinning_cs`) and `ped_standard_head_cs`
+(`CS_ComputeBlendshapeMappings`, …), and skinning vertex types include
+`pedblendshapes`, `pedsecmotion` and `deformable*`, so body shape is
+probably also solved per vertex on the GPU. Ped mesh blobs carry slots 17
+(format 0x84, 16 bytes) and 19 (format 0x27, tangent-like), maybe packed
+morph data. The preset PSO in `anim.rpf` (`@106153000`, 1.9 MB) is a hashed
+dictionary of 15,793 scalars over 322 names (all 27 body controls plus 295
+unknown, probably face), 932 vec3 and 466 vec4 values. Idle and locomotion
+clip dictionaries key the body controls (`gcmusclechest`, `gcweightbelly`)
+as animated tracks. The 53 rig input names match none of these names under
+joaat, case-sensitive joaat, FNV-1a or common prefixes.
+
 ## Music catalogue
 
 `music.dat` is compiled parsable data: a root count, then the magic u32

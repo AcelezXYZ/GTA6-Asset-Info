@@ -289,6 +289,18 @@ mip 3 under a mip 1 with a logo), so they cannot be scored.
   passes, so their error has another cause; the preset values remain
   fitted, not known. The public patent material on this codec covers only
   the entropy layer, not the block history or presets.
+- **BC7 refinement** (2026-11-23): every BC7 preset slot, endpoint and
+  index, was refined field by field, scored on the blocks each slot roots
+  in the 1,029 chunks that have a plain neighbour mip. 185 endpoint and 54
+  index slots changed; good blocks on that reference rose from 1,163,847
+  to 1,264,377. Mip 0 against mip 1 over 1,431 BC7 textures in the whole
+  install: textures under 20 dB fell from 6.7 % to 2.5 %; 283 gained more
+  than 1 dB and 64 lost more than 1 dB; the median rose from 39.5 to 42.5
+  dB for textures whose neighbour mip is uncompressed and from 32.0 to 32.4
+  dB for the rest. High that this is a net improvement (it also holds on
+  textures outside the fit set); medium per slot. Six textures with no
+  plain reference drop below 20 dB, so the slots they use are still not
+  the true values; the exact presets remain unknown.
 - **BC7:** the order of the mode 0 / 2 headers is fitted (medium).
 
 **BC1/3/4/5:** Confirm the disputed or fitted endpoint presets and selector

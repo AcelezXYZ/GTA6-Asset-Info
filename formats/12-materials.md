@@ -167,6 +167,27 @@ pool-blue, white cables black, grey or blue.
   placed with it is rows − 1). Row 0 is the default.
 - Colour = palette[row × row length + `COLOR0.b`].
 
+**Render check (2026-11-22).** The rule above, multiplied into the base
+colour and applied only to primitives whose own shader binds
+`tintpalettetex`, was rendered in a 3D engine:
+
+| Finding | Confidence |
+|---|---|
+| **Row 0 looks plausible.** A pier Ferris wheel hub and plaza come out white / grey, with coloured entries (green, cyan, red at indices 120–125) only on small parts. There is no in-game reference image | medium |
+| **Rows above 0 look wrong as read.** Rocks on a 260-wide palette (16 rows × 16) placed with rows 2, 6 and 7 render near black; on the hub's 1,024-wide palette (4 × 256), rows 1–3 are almost all `ffbbff` filler. So the row rule is probably **incomplete**: either `tintValue` does not select the row directly (the clamp at rows − 1 is inferred), or some shaders choose the row differently. Treating the palette as sRGB instead of linear does not fix it | medium |
+| **LOD drawables often bind no palette** even when the full model does, and there `COLOR0.b` is not a tint index (the Ferris wheel LOD has b = 0 with about 100 other distinct values) | high |
+
+This contradicts the "confirmed" row selection above for rendering; the
+`tintValue` maximum per width still holds, so both are kept until the row
+lookup is understood.
+
+**Texture load of map pieces** (measured on a full map export,
+2026-11-22; high): a 64 m HD ground tile such as `n02_e01_002_hd` references
+71 materials and about 170 textures, about 166 megapixels; big ground tiles
+and building shells typically use 120–170 textures each. Loading all of
+them when a tile appears stalls a frame, so streaming has to spread the
+texture loads.
+
 **Texture hashes in no store.** Embedded tint palettes account for 30,095 of
 the 33,770 texture hashes that a full `levels.rpf` map export finds in no
 `data/ttdb` store. The other 3,675 are in no store or resource of the
@@ -187,6 +208,11 @@ engine defaults (inferred).
   either 32-bit half beyond chance.
 - Whether `c6f46e79` G is roughness or gloss; emissive and glass flags for
   unknown shader families.
+- How tint palette rows above 0 are selected (see the render check under
+  [Tint palettes](#tint-palettes)).
+- Emissive intensity: no brightness for lamps, neon or lit windows is
+  decoded, so a port has to choose its own (the emissive texture is the
+  base colour image; brightness is unknown).
 
 
 ---

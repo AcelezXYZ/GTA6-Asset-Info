@@ -11,8 +11,9 @@ the files of copies they own.
 
 ## What it contains, and does not
 
-This repository is documentation only. It contains **none** of the
-following:
+This repository is documentation, plus the original-code `scripthookvi/`
+framework (no game code, no patterns for the game, no anti-cheat bypass).
+It contains **none** of the following:
 
 - game files, archives or parts of them;
 - extracted assets (models, textures, audio, map data, text);

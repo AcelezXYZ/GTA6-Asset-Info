@@ -138,6 +138,25 @@ float tracks are left out). The report on stdout gives unresolved joints
 and how many tracks land on a joint. Not done: root motion, facial
 animation, cloth.
 
+`ped-variations` (0.7.0) lists a wardrobe's variations and their parts
+([§12](../formats/12-materials.md#material-presets-peds)). In a fresh work
+folder it needs two indexes first:
+
+```powershell
+# 1. The names dictionary; without it every variation's scale is null (the field is read by name)
+sixng index common
+sixng names
+# 2. The texture index, which links an item's texture hashes to its drawable
+sixng texture-users packs
+```
+
+For the two zombie wardrobes (`packs.rpf@2b21010` and `@2b34010`),
+indexing `packs` alone gives the same 43 and 75 variations, parts and
+scales as indexing every archive (compared record by record); other
+wardrobes may reference drawables outside `packs` (not checked). Timings:
+names about 4 s, `texture-users packs` about 32 s. Which head set belongs
+to which clothing set is not known.
+
 ### Effects and fonts
 
 ```powershell

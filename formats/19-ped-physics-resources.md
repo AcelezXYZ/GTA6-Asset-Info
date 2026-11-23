@@ -369,14 +369,17 @@ probably use the `_m_00` meshes (inferred).
    30 is fur / hair (inferred); its list under `e3da9c8b` ends in the slot
    hash (confirmed, one registry read).
 3. An unnamed resource right after the groom block (`packs.rpf@113b56010`,
-   288,976 bytes) is a **hash map from GUID to a record**: u32 `0x100` and
-   u32 `0xB50` at 0x10, the map pointer at 0x18; 32-byte entries {u64 GUID,
-   16 zero bytes, pointer} with 16-byte control groups between them. A fur
+   288,976 bytes) is a **hash map from GUID to a record** (confirmed): u32
+   at 0x10 = `0x100` (group count), the map pointer at 0x18 and the map end
+   at 0x48; 256 groups of 528 bytes from 0x60, each 16 control bytes then
+   16 slots of 32 bytes {u64 GUID, 16 zero bytes, pointer}. Pointers address
+   the system page followed by the graphics page as one buffer. A fur
    record is {u32 byte length, u64[length / 8]}: the fur's groom pieces.
    1,879 entries of 1–14 pieces, 6,238 distinct piece ids (e.g. cat body
    variants 8, 9, 9, 9, 9, 9, 8; cat head 4, 4, 5, 4, 4, 5, 4; cow body 1
-   each, the tail switch). Other record shapes exist (confirmed; others
-   not decoded).
+   each, the tail switch). Other record shapes exist (not decoded). The
+   archive holds 5,599 groom pieces, fewer than the ids, so some assets'
+   files are not in `packs.rpf` (inferred).
 4. The piece ids occur nowhere else in `packs.rpf` (searched as u64 and as
    halves), so they are probably file-name hashes resolved through the TOC.
 5. **Usable link (inferred, strong evidence): grooms are stored in the
@@ -386,8 +389,46 @@ probably use the `_m_00` meshes (inferred).
    cat's body / head mesh at a median of 0.5 mm (other chains 8 mm or
    more); the Holstein cow's chains start right after the cat block; inside
    the cat block the runs match the piece counts in alphabetical order of
-   the variant (body exactly; head 4, 4, 6, 4, 4, 6, 4 against 4, 4, 5, 4,
-   4, 5, 4, the extras from the chain rule splitting a piece).
+   the variant.
+
+**Checked on 11 animals** (2026-11-23; placed by this walk / of those
+near the skin on their own part): cats (feral and shorthair, one shared
+skin) 229 / 229; wild and legendary boar 97 / 97; chimpanzee 49 / 49; boxer
+53 / 53; Holstein cow 18 / 18; white-tailed deer 130 / 127; black bear
+29 / 28; coyote 44 / 41; Yorkshire terrier 132 / 118; Holstein bull 27 / 20.
+Counts can be off by one (coyote `body_medium_00` lists 6 ids but has 7
+files).
+
+- **Corrections** to the first reading: the cat variants sit in exact name
+  order (`body_long_00`, `body_medium_00` … `body_short_03`,
+  `head_long_00`, `head_medium_00` …); the "6-chain group with longer
+  strands" was the long variants (body 7 pieces, head 1), and the cat head
+  extras were a LOD-grouping error. With the grouping below the heads give
+  exactly the table's counts.
+- **Sharing** (confirmed): variants of one animal share piece ids (the
+  cow's three medium bodies list the same single id, its three medium heads
+  the same five). Over 506 animal fur assets: 2,797 ids, 2,057 distinct,
+  407 shared within an animal, 4 across animals (cow and runaway cow). A
+  shared piece is stored once, in the run of the first variant in name
+  order that lists it (inferred; the counts add up on the cat, cow, boar,
+  chimpanzee and boxer).
+- **Presets without a GUID** (confirmed): of 495 fur placeholder drawables,
+  429 have a preset with a GUID (all in the table); 66 have none (the cat's
+  long variants, legendary and corpse variants …). Their grooms exist; the
+  count is known only from what the neighbours leave.
+- **LOD grouping** (inferred; replaces the "same bones, fewer strands"
+  chain rule above): compare bone *sets*, not order. LOD names sort apart,
+  so a piece's LOD 0 can be followed by another piece's whole chain before
+  its own LOD 1 (strands in archive order 571 | 827, 413, 289, 124 | 285,
+  196, 74, where 571 / 285 / 196 / 74 are one piece with an identical root
+  box). A groom joins one of the last three pieces when it has the same
+  bones, fewer strands than that piece's last LOD and, for a piece further
+  back, the same root box within 2 mm. Result: 20,010 grooms → **5,599
+  pieces** (the old rule gives 5,915 chains).
+- **Root-to-skin distance** (measured): 0–6 mm for most pieces on their
+  own animal, 9–15 mm on the boar's long variant, 25 mm or more on other
+  animals; same-sized relatives (coyote among canines) sit at 4–30 mm, so a
+  threshold alone does not separate them.
 
 ## Open questions
 
@@ -395,10 +436,13 @@ probably use the `_m_00` meshes (inferred).
   `beard*`, `brows*` 3-vertex drawables). No shared joaat or 64-bit hash
   was found. For animal fur the order rule of [§19.6](#196-animal-material-presets-and-the-fur-link)
   links grooms to fur assets; whether human hair follows it is not checked.
-- Animal fur: a 6-chain group with longer strands between the cat's body
-  and head variants (no GUID); the other registry files and record shapes;
-  fur colour (fur presets carry palette `fcef23e3` and a 16 × 16 texture);
-  the tint palettes and how the bytes index them.
+- Animal fur: whether the table lists a variant's ids in file order; why
+  66 placeholders have no preset and where the missing piece files are;
+  the other registry files and record shapes; fur as drawn (only guide
+  strands are decoded; fur presets carry palette `fcef23e3` and a 16 × 16
+  texture); the tint palettes and how the bytes index them. The first
+  "animal" chains of the catalogue (finger bones, 1.2 m span) are probably
+  human body hair.
 - The meaning of cloth particle w and the second particle / edge set.
 - The colour textures of the base heads (not in the install).
 - The meaning of hair sections A0/A1/A3–A7, B1–B3, B6, B7, Q0–Q3; the

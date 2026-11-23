@@ -88,9 +88,9 @@ K = points per strand, T = root triangles.
 | Off | Type | Meaning | Confidence |
 |---|---|---|---|
 | 0x00 | u32[8] | section offsets A0–A7 (0 = absent) | confirmed |
-| 0x20 | u32 ×3, u32 | 0, 0, 0, 0xFFFFFFFF | confirmed |
+| 0x20 | u32 ×3, u32 | 0, 0, 0, 0xFFFFFFFF. *A later sample reads section offsets C0–C2 here, not zeros (measured on samples; not reconciled)* | confirmed (first reading) |
 | 0x30 | u32[8] | section offsets B0–B7 | confirmed |
-| 0x50, 0x54 | u32 ×2 | 0x4E8 on most resources; ? | unknown |
+| 0x50, 0x54 | u32 ×2 | 0x4E8 on most resources; ?. A u24 at +0x55 = S × K (measured on samples) | unknown |
 | 0x58 | u16 | **S** | confirmed |
 | 0x5A | u16 | **T** | confirmed |
 | 0x5C | u32 | **K** (2–50; 3 on 5,001 resources, 30 on 1,690) | confirmed |
@@ -107,22 +107,47 @@ padding.
 
 | Section | Size | Contents | Confidence |
 |---|---|---|---|
-| **B5** | S × K × 8 | **points: 4 × f16 (x, y, z, w)**, strand-major. w is non-zero at the root on 99.6 % of strands; probably a **width**: about 0.57 mm along the strand, about 3 mm at the root | xyz confirmed; w inferred |
+| **B5** | S × K × 8 | **points: 4 × f16 (x, y, z, w)**, strand-major. w is non-zero at the root on 99.6 % of strands; first read as a **width** (about 0.57 mm along the strand, about 3 mm at the root); a later sample finds **w = 0.1 × rest length** (B2), so it is probably not a width | xyz confirmed; w inferred |
 | **B4** | T × 6 | **root triangles: 3 × u16 strand indices** (all < S) | confirmed |
 | **B0** | S × 2 | **f16 strand length** (equals the polyline length to 2 % on 98 % of resources) | confirmed |
 | A2 | S × 4 | 2 × f16: probably the **root UV**. Present on 250 of 250 sampled grooms, 73–100 % in 0..1, and it follows the root position (median \|r\| 0.86 for u, 0.83 for v) | inferred |
-| A0, A1, A3 | S × 4 | per-strand u32 | unknown |
-| A4, A5, A7 | S × 8 | per-strand 8 bytes | unknown |
+| A0 | S × 4 | per-strand u32; byte 0 = clump size (see B6) | inferred |
+| A1 | S × 4 | per-strand u32: root triangle index | inferred |
+| A3 | S × 4 | constant fill | measured |
+| A4, A5 | S × 8 each | **root skinning: 8 bone indices and 8 weights summing to 255** (448 of 448) | measured on samples |
+| A7 | S × 8 | per-strand 8 bytes | unknown |
 | A6 | S × 12 | per-strand 12 bytes | unknown |
-| B1 | S × K × 4 | per point, 2 × f16 | unknown |
-| B2 | S × K × 2 | per point, f16. Not the arc length | unknown |
-| B3 | S × (K − 1) × 4 | per segment | unknown |
-| B6 | T × 4 | per triangle, 4 × u8 | unknown |
+| B1 | S × K × 4 | per point, 2 × f16: simulation curves | inferred |
+| B2 | S × K × 2 | per point, f16 **rest lengths**: point 0 = strand length, point k = segment length (not the arc length) | measured on samples |
+| B3 | S × (K − 1) × 4 | per segment: a unit vector perpendicular to the segment | inferred |
+| B6 | T × 4 | per triangle, 4 × u8: **c0 = strands grown in that triangle** (Σ c0 = sys +0xD0 on 121 of 134 densest LODs; tracks triangle area, r 0.97–1.0); c2 ≈ clump count and c1 ≈ c2 × clump size (Σ c1 within 1 % of sys +0xD4 on 90 of 134, inferred); whiskers c0 = 0, c1 = c2 = 1. Totals are equal across a piece's LODs; low LODs saturate at 255 | c0 measured on samples; c1, c2 inferred |
 | B7 | T × 1 | per triangle, u8 | unknown |
-| Q0, Q2, Q3 | S × 4 | per strand | unknown |
+| Q3 | S × 4 | root normal, n = 1 − b / 127.5 | measured on samples |
+| Q0, Q2 | S × 4 | per strand | unknown |
 | Q1 | 4 | u32 | unknown |
 | (implicit, after the last table section, on 26 % of resources) | 2 × S × 4 + 8 + 4n | two per-strand u32 arrays, then a 2 × f16 range and n × {f16 value, u16 monotonic 0..0xFFFF} | inferred |
-| tail (offset at 0xAC) | 4 × (multiple of 3) | records {u24 index, u8 weight}. The record count is always a multiple of 3, and the three weights sum to 255 on 62 % of resources (render strands interpolated from guides?) | inferred |
+| tail (offset at 0xAC) | 4 × (multiple of 3) | records {u24 index, u8 weight}. The record count is always a multiple of 3, and the three weights sum to 255 on 62 % of resources: extra points blended from guide points (143 of 205 fit) | inferred |
+
+**Rendering and parameters** (2026-11-23; measured on 484 sampled grooms,
+not re-checked):
+
+- System +0xEA and +0xEE both hold the longest strand; +0xF0 is probably the
+  strand width or radius (0.2–0.5 mm, zero on 29 %) with its taper at +0x110
+  (inferred). Simulation settings sit at gfx +0x60–0x9F and system
+  +0xE8–0x132 (located by position only).
+- The drawn count is probably c0 + c1 per root triangle (a cat body:
+  277,789 + 86,802 strands from 6,757 guides; inferred). Growing that many
+  random strands per triangle raised the covered area on three cat pieces
+  from 4.2 / 1.7 / 6.4 % to 88.2 / 90.7 / 65.4 %.
+- The hair effects are an `smh_*` family (pose, simulate, `smh_gen_N`
+  "InterpolateStrands" in 80 variants, modify, draw, a compute rasteriser),
+  then `hair_resolve` and the `TL_PS_PBR_MATERIAL_HAIR` lighting passes;
+  the shader code is native, so no constant or texture names can be read.
+- **Fur colour:** all 601 fur presets bind the same 16 × 16 marker texture
+  (`1ae2616f99a5e7ae`) and a 4 × 16 black normal, so the colour probably
+  comes from the body skin at the root UV (inferred). No drawable uses
+  `ped_standard_hair` or `ped_standard_fur`. `common.rpf` has only
+  time-cycle hair values.
 
 Decoding the points:
 
@@ -445,7 +470,11 @@ files).
   human body hair.
 - The meaning of cloth particle w and the second particle / edge set.
 - The colour textures of the base heads (not in the install).
-- The meaning of hair sections A0/A1/A3–A7, B1–B3, B6, B7, Q0–Q3; the
+- Hair: A0 bytes 1–2, A6, A7, B7, Q0–Q2, C0; the twelve style values at
+  system +0xF8–0x10F; placement within a triangle, clumping, noise and
+  curl; the hair lighting inputs; how palette `fcef23e3` applies; how
+  quality and distance scale the count.
+- The meaning of hair sections not listed above; the
   tail weights; render-strand generation.
 - The name of `7d8f3db3`, and of the LOD1 base-head hashes.
 - The cloth per-instance structures after the first particle/edge pair.

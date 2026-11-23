@@ -15,10 +15,10 @@ format across all titles.
 
 | Codec | Entropy decoding | BC block reconstruction |
 |---|---|---|
-| `0x04` BC1 | Confirmed on sampled chunks with two implementations. | Working exports. Some endpoint presets and selector codebook entries still differ between implementations. |
+| `0x04` BC1 | Confirmed on sampled chunks with two implementations. | **Decodes** ([BC1 blocks](#bc1-blocks-codec-0x04)): 254 of 256 preset slots fitted (slots 0 and 4 are never referenced, so no block depends on them); 8 selector codebook entries (4 mirror pairs) are uncertain. Mip 0 against mip 1: median 33.5 dB over 35,563 textures. Fitted (inferred); not byte-exact. |
 | `0x0C` BC3 | All 35 BC3 chunks decode with the expected symbol counts, the 65,536-block ones as one stream (confirmed). Two implementations also agree on every symbol on 5 samples. | **Decodes** ([§6.2](#62-bc3-blocks-codec-0x0c)): 27–47 dB against neighbouring mips, mostly 31–39. The preset table and selector codebook are fitted (inferred); not byte-exact. |
 | `0x10` BC4, `0x14` BC5 | Two implementations agree on every symbol and consume the full input on 2 BC4 and 5 BC5 samples. | **Decodes** ([§6.4](#64-bc4-and-bc5-blocks-codecs-0x10-0x14)): BC4 35–50 dB, BC5 median 43 dB against neighbouring mips. Index-pair tables and presets are fitted (inferred); not byte-exact. |
-| `0x18` BC6H | All 268 BC6H chunks in the local scan consumed their exact input and emitted the expected symbol counts per lane. All symbols also matched a second implementation on 5 spot checks. | **Decodes** ([§6.5](#65-bc6h-blocks-codec-0x18)): 88 % of blocks within 0.15 stops of plain neighbouring mips, 28 dB tonemapped (median 35 dB per texture); on textures stored only as BCPack, 62 % of blocks match the decoded neighbouring mips. History tables are fitted (inferred); not byte-exact. |
+| `0x18` BC6H | All 268 BC6H chunks in the local scan consumed their exact input and emitted the expected symbol counts per lane. All symbols also matched a second implementation on 5 spot checks. | **Decodes** ([§6.5](#65-bc6h-blocks-codec-0x18)): 87.7 % of blocks within 0.15 stops of plain neighbouring mips, 28.1 dB tonemapped; on textures stored only as BCPack, 71.4 % of blocks match the decoded neighbouring mips after the refits in [§6.7](#67-open-unknowns) (62 % before). History tables are fitted (inferred); not byte-exact. |
 | `0x1C` BC7 | All 5,167 BC7 chunks of the data and content-pack stores decode (5,120 in the data stores). All symbols also matched a second implementation on 24 spot checks. | **Decodes** ([§6.3](#63-bc7-blocks-codec-0x1c)): on 1,029 chunks checked against the next mip, 65.5 % of blocks within 3 levels, median 35.4 dB, no invalid blocks. The 256-slot history table is fitted (inferred); not byte-exact. |
 
 For BC1, the block count is the chunk's virtual size divided by 8.
@@ -105,6 +105,123 @@ every non-padding input byte accounted for, and a legal terminal state.
 With `L = 2^24`, the allowed final states are `L`, `L >> 8` and `L >> 16`;
 requiring `L` alone rejects valid streams.
 
+### Entropy decoder in full
+
+(2026-11-23; confirmed: every lane of all 108,605 chunks ends in a legal
+state with these rules, and changing any one rule breaks convergence.)
+
+**Chunk level.** A BCPack chunk has **no stream header**: its stored bytes
+(the chunk length minus the pad, [§5](05-ttpf.md#chunk-entry-u32-a-u32-b))
+are one byte stream shared by all lanes, and the first byte is already
+lane 0's first fragment header. The output size is the chunk's virtual
+length; blocks = virtual length / 16 (/ 8 for BC1 and BC4).
+
+| Codec | Lanes | Symbol width per lane, bits | Symbols per lane |
+|---|---|---|---|
+| BC1 | 12 | 8, 8, 5, 6, 5, 5, 6, 5, 8, 8, 8, 8 | blocks |
+| BC3 | 12 | 4, 4, 8, 6, 6, 6, 6, 5, 6, 5, 8, 8 | 2 × blocks |
+| BC4 | 12 | 8, 8, 8, 8, then 8 × 6 | blocks (8-byte blocks: block 2j = E, 2j + 1 = O) |
+| BC5 | 12 | 4, 4, 8, 8, then 8 × 6 | 2 × blocks |
+| BC6H | 16 | 4, 4, 8, 8, 8, 5, 5, 5, 6, 6, 6, 8, 8, 8, 8, 5 | 2 × blocks |
+| BC7 | 16 | 4, 4, 8, 8, 8, 8, 8, 7, 7, 5, 6, 8, 8, 8, 8, 5 | 2 × blocks |
+
+A lane's alphabet index is `alphabet_bits = width − 1`.
+
+**Fragment header.** Each lane reads its own fragments from the bytes the
+feeder hands it:
+
+```text
+byte 0: bits 7..6  z      alphabet narrowing: eab = alphabet_bits - z
+                          (clamped at 0; eab > 8 is an error)
+        bit  5     long   1 = 16-bit length, 0 = 8-bit length
+        bit  4     flush  reset the state to 0 when this fragment ends
+        bits 3..0  q      static model number 0..15
+byte 1: short form: payload length = byte1 + 1
+        long form:  payload length = (byte2 << 8 | byte1) + 257
+```
+
+The payload length counts every byte the lane reads in the fragment,
+including those that form the initial state.
+
+**State and decode step.** 32-bit state x, L = 2^24, 16-bit probabilities.
+
+```text
+at the start and after a flush: x = 0
+while x < L and payload remains:  x = (x << 8 | next_byte) mod 2^32
+    # so the first four payload bytes are the big-endian initial state
+when x > L and the lane still owes symbols:
+    cf = x & 0xFFFF
+    s  = the symbol whose cumulative range contains cf   # model (eab, q)
+    x  = (freq(s) * (x >> 16) + cf - cum(s)) mod 2^32
+when the payload is used up:
+    if x == L: the next fragment header follows
+    else: keep emitting without reading until x <= L
+```
+
+After its last symbol a lane's state must be L, L >> 8 or L >> 16 (the
+encoder may drop up to two trailing zero bytes); anything else means a
+wrong lane width, lane count or symbol count. This is the all-or-nothing
+check.
+
+**Static models.** 9 alphabet sizes (eab 0–8, alphabets of eab + 1 bits)
+× 16 models. Symbols are grouped in segments: segment 0 is symbol 0,
+segment k ≥ 1 is symbols [2^(k−1), 2^k). Each segment has a cumulative base
+and one frequency shared by its symbols, so a model is at most 10 (base,
+frequency) pairs. Cumulative value 0 is reserved: a symbol whose
+cumulative frequency would be 0 gets (frequency − 1, cumulative 1). Exact
+division inside a segment finds the same symbol as the hardware's
+comparator chain and reciprocal multiply for every cf of every model. The
+(base, frequency) values are not derived here: they come from the
+vendor's own published hardware description of the decoder, and no formula
+that reproduces them is known.
+
+**Lane feeder.** Lanes run on a common clock with two phases:
+
+1. Phase 0: a lane holding a decoded symbol hands it to its output slot
+   (only if the slot is empty) and applies the state update. Lanes that
+   want a byte request one.
+2. Requesting lanes are served in lane order 0, 1, 2 … from the single
+   stream, **at most 8 bytes per clock**. A lane that asks and is not
+   served stalls for that clock.
+3. Phase 1: header parsing, renormalisation and symbol decode.
+4. Lockstep output: each lane has one output slot, and all slots are
+   released together once every lane that still owes symbols holds one,
+   so symbols leave one vector at a time.
+5. A flush is handled per lane as above; the feeder does not treat it
+   specially.
+
+On 120 sampled BC1 chunks, no chunk converges when any one rule changes (a
+window of 7, 9 or 16 bytes, reverse lane order, free-running lanes, or a
+symbol count off by one).
+
+**Output order** (all codecs; high): stream order is the texture's stored
+(tiled) order. The decoded blocks replace the chunk's virtual bytes
+directly; detile as for a zlib chunk.
+
+### BC1 blocks (codec `0x04`)
+
+(Fitted constants; structure high.)
+
+- Lane 0: distance d = unzigzag(v) mod 256 (v even: v >> 1; v odd:
+  255 − (v >> 1)). d = 0 predicts zero for all six fields; d ≤ i predicts
+  from block i − d; d > i reads preset slot (i − d) mod 256. Lane 1 is
+  always 0.
+- Lanes 2–7: zigzag residuals (0, −1, +1, −2 …) of R0 G0 B0 R1 G1 B1,
+  added modulo the field width (5, 6, 5, 5, 6, 5). Fields never mix
+  between the two endpoints.
+- Three-colour blocks: there is no swap flag and no special handling;
+  c0 ≤ c1 occurs and is written as decoded. Such blocks fit the next mip
+  slightly worse, and no separate table was found (open).
+- Lanes 8–11: selector quadrants top-left, top-right, bottom-left,
+  bottom-right. Each symbol indexes a fixed 256-entry codebook of 2 × 2
+  patterns of 2-bit codes (a bijection onto all 256 patterns, roughly
+  frequency-ordered). Symbols 0–3 are the uniform quadrants with code
+  `sym XOR 2`. Selectors are not predicted.
+- Presets: 254 of 256 slots fitted; slots 0 and 4 are never referenced.
+  Codebook: two fits on disjoint halves of the data agree on 248 of 256
+  entries; the other 8 are 4 rare mirror pairs (229/235, 230/231,
+  247/248, 254/255). The fitted values themselves are not published here.
+
 **Prediction (BC1, BC3, BC7).** Every block is coded as residuals against a
 reference: the zero state (distance 0), block `i − d` of the same chunk in
 stream order (`d ≤ i`), or, for `d > i`, slot `(i − d) mod 256` of a fixed
@@ -169,7 +286,8 @@ bit positions and O on the odd ones.
 - **History:** endpoints and indices both have a fixed 256-slot table. Each
   chunk's root blocks only fix the top w bits their mode reads, so the
   table was fitted by voting per value at each root's width (inferred).
-  137 blocks (0.008 %) still start from an unfitted slot.
+  Every slot that any chunk uses is now fitted (0 blocks on an unfitted
+  slot; an earlier count was 137).
 
 Result on 1,029 chunks against the next mip up, downsampled: 65.5 % of
 blocks within 3 levels, median 35.4 dB, no invalid BC7 blocks. Mis-fitted
@@ -190,6 +308,10 @@ pairs (fitted, inferred).
 | lane 1 | unused | |
 | lanes 2 / 3 | channel 0 / channel 1 endpoint residuals (E = e0, O = e1) | e0 / e1 residuals |
 | index lanes | 4–7 channel 0, 8–11 channel 1: lane 4 + k has E = pixels 4k, 4k + 1 and O = 4k + 2, 4k + 3 | lane 4 + k = pixels 2k, 2k + 1 |
+
+BC4 and BC5 differ only in lanes 0–3 (8 bits each in BC4; 4, 4, 8, 8 in
+BC5). BC4's distance is unzigzag(v) mod 256 like BC1's; BC5's is BC3's
+bit-interleaved form (widths confirmed, meaning high).
 
 ## 6.5 BC6H blocks (codec `0x18`)
 
@@ -224,6 +346,10 @@ Distances as BC7 ([§6.3](#63-bc7-blocks-codec-0x1c)).
   blocks within 0.15 stops.
 - **Open:** the x prediction after a change from mode 12 to mode 11 is
   sometimes off by +25 to +30 (44 blocks seen).
+- **Signedness:** every BC6H texture in the stores is the unsigned format,
+  so only unsigned was tested. The BCPack layer codes the stored fields
+  and does not depend on signedness; a signed texture would differ only in
+  the final block-to-pixel step (not tested).
 - **Indices:** the BC7 scheme with a 4-bit MSB-aligned state, 3-bit reads in
   two-region modes; distance 0 predicts 8. Anchor top bits are dropped
   (truncating fits better than keeping them).
@@ -316,6 +442,39 @@ mip 3 under a mip 1 with a logo), so they cannot be scored.
   decodes, so this shows self-consistency, not ground truth. BC6H remains
   the weakest codec: plain BC6H scores 29.1 dB on the same measure, so
   about 10 dB is still preset error or an unknown rule.
+- **Joint BC6H refit** (2026-11-23, medium-high): a slot fitted only from
+  blocks with a plain reference can be badly wrong in fields those blocks
+  never read. One texture's second mip decoded as noise (2 dB) while its
+  neighbours were fine, with 90 % of its blocks rooted at such a slot.
+  Refitting all slots jointly, with the plain references weighted higher,
+  raised the BCPack-only match from 71.6 to 75.8 % and the mip 0 against
+  mip 1 median from 19.6 to 22.0 dB (36 % under 20 dB), with the reference
+  set at 87.7 % / 28.5 dB. These are first-round figures; more rounds are
+  running.
+- **How to reproduce a fit** (most reliable first):
+  1. Slots with a plain reference: per-field coordinate descent over the
+     blocks each slot roots, scored against the plain neighbouring mip.
+     For BC6H, score full pixels with the decoded indices, not endpoints
+     alone.
+  2. Textures stored only as BCPack: alternate decoding and fitting
+     against the decoded neighbour mips in both directions.
+  3. Child mip: compare 2 × 2 block means with the next smaller mip.
+  4. Edge continuity (see its limit above).
+  5. Do not freeze a slot because it has a plain reference: those blocks
+     only constrain the fields their modes read. Fit jointly, with the
+     plain references weighted higher.
+  6. After any refit against a subset, check each changed field on every
+     texture of the codec and keep the old value where it is better.
+- **Fitted tables** (not game data): BC3 presets (256 slots, colour and
+  alpha), its colour quadrant codebook (256 entries, BC1's layout with
+  other entries) and alpha index-pair table (64 entries of two 3-bit
+  indices); BC4 and BC5 presets (256 slots) and index-pair tables (64);
+  BC6H endpoint presets (256 slots × 4 fields × 3 channels, 16-bit) and
+  index presets (256 × 16, 4-bit); the BC7 header table (285 (E, O) pairs
+  to mode, partition, rotation and index selection), endpoint presets
+  (256 slots × 3 subsets × 2 endpoints × RGBA, 8-bit) and index presets
+  (256 × 2 sets × 16, 4-bit). They will be published here once the BC6H
+  and BC7 refits settle.
 - **BC7:** the order of the mode 0 / 2 headers is fitted (medium).
 
 **BC1/3/4/5:** Confirm the disputed or fitted endpoint presets and selector

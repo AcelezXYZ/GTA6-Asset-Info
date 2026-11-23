@@ -24,7 +24,7 @@ u32 magic `0x4042` at 0.
 |------|---------|-----------|
 | stream table | u32 slot k at +4k, k = 0..22. Value = `offset_in_2_byte_units << 8 \| format`; byte offset = `(v >> 8) × 2`. Slot 0 `0x4042` → offset 0x80, format 0x42 | confirmed |
 | 0x60 | f32 × 3 position base | confirmed |
-| 0x6C | u32: the model axis held in the flat 16-bit z slot. 2 = z: slots hold (x, y, z), identity. 1 = y: slots hold (z, x, y). 0 = x: slots hold (z, y, x), a swap and not a rotation. Before 2026-11-20 mode 0 was read as (y, z, x), which tipped wall panels by 90°. SixNG also scores all six permutations against the stored normals. | confirmed (2026-11-20) |
+| 0x6C | u32: the model axis held in the flat 16-bit z slot. 2 = z: slots hold (x, y, z), identity. 1 = y: slots hold (z, x, y). 0 = x: slots hold (z, y, x), a swap and not a rotation. Before 2026-11-20 mode 0 was read as (y, z, x), which tipped wall panels by 90°. SixNG also scores all six permutations against the stored normals; **trust +0x6C instead**: a survey of 3,375 models (2026-11-23) found that override firing on 114 of 36,305 meshes (0.31 %, 51 models), and in the 7 checked by hand the hint was right and the override wrong (confirmed for those 7, inferred for the rest). | confirmed (2026-11-20) |
 | 0x70 | f32 × 3 position step | confirmed |
 | vertex count | V = (smallest stream offset > 0x80 − 0x80) / 8 | confirmed |
 
@@ -88,7 +88,10 @@ header; V = (next stream offset − 0x60) / 12. Slot 2 (also 3 × f32) is the
 normal on water, and the unit direction along the wire on cables. Cable
 vertex pairs share a position (zero-width ribbon widened by the shader;
 UV0.x = ±1 gives the side). SixNG widens cables into two crossed 2 cm
-ribbons; the real thickness is a shader parameter not yet read.
+ribbons; the real thickness is a shader parameter not yet read. A ribbon
+can only be widened this way when every position occurs exactly twice:
+10 of 53 surveyed cable meshes break that rule, probably where two cables
+share a position (inferred, not checked on raw data).
 
 ## 7.3 Meshlet index buffer (flags 0x1380, confirmed)
 
@@ -107,7 +110,16 @@ were first read as u16 followed by a zero u16, which drops triangles on big
 meshes (on a motorcycle body: 595 meshlets, 70,057 triangles, 69,901 remap
 entries, 65,534 vertices; 4,521 triangles were lost before). The u16 remap
 start wraps past 65,535 but ascends, so unwrap it along meshlet order
-(confirmed on that mesh).
+(confirmed on that mesh). Over a survey of 3,375 models (all 305 vehicle
+`_hi` bodies plus samples of parts, props, map, weapons, animals and peds)
+the u16 reading broke 44 models, all vehicles (41 of the 305 bodies,
+13.4 %): 27 shredded (triangle count ≥ 65,536) and 17 missing parts (remap
+count ≥ 65,536; e.g. `ambulance_hi` geometry 19, 59,541 triangles and
+67,575 remap entries, exported only 3,422 triangles and lost its interior).
+With u32 counts nothing is shredded, and triangle totals rise 1.4× to 16×
+(`rhino_hi` 53,808 → 301,345). **Rule of thumb:** 1–12 dropped (degenerate)
+triangles on a mesh is normal; more than about 30 on a mesh of tens of
+thousands of vertices means a decode problem.
 
 Vertex = `remap[remap_start[meshlet] + local]`. Drop degenerate padding
 triangles. Descriptors start at 0x0C, not 0x10. About 97 % of triangles
@@ -375,6 +387,10 @@ per-layer vec4s are in [§12](12-materials.md).
   probably there; unchecked).
 - The 64-bit texture name hash; 152 of 229 parameter names.
 - How damage parts are swapped in; how `wheelScale` sizes the shared wheels.
+- Why some vehicle skeletons stop early: `dominator_hi` (72 bones) and
+  `trotter_hi` / `_mid` (107) end after `cargo_volume`, `chassis_dummy` and
+  `chassis_lowlod`, though their strings hold the door and wheel bone names
+  (typical cars have 270–390 bones; 3 of 365 bodies).
 
 
 ---

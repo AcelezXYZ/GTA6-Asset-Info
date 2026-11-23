@@ -34,6 +34,7 @@ GTA V, used only to say what a structure corresponds to.
 - [4. Xbox Series texture tiling (dictionaries)](04-xbox-tiling.md)
 - [5. `ttpf` texture stores](05-ttpf.md)
 - [6. BCPack](06-bcpack.md)
+  - [6A. BCPack tables](06a-bcpack-tables.md)
 
 **Models**
 

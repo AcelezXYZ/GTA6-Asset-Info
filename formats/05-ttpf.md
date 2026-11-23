@@ -225,6 +225,43 @@ index before gathering and detiling the mip. A codec tag alone is
 insufficient to validate a chunk. Report levels independently if any
 chunk cannot be decoded.
 
+## BC6H textures and decoder pitfalls
+
+(2026-11-23.) BC6H textures in the stores are **standard BC6H**: UF16
+(format ids 94 / 95) and SF16 (96). A decoder written from the BC6H
+specification gives clean images (high confidence). Three mistakes are
+easy to make, and at least one widely used decoder makes all three; each
+gives wrong HDR lighting textures:
+
+| Pitfall | Correct | Wrong result |
+|---|---|---|
+| unsigned unquantize | only the top endpoint value `(1 << bits) − 1` maps to `0xFFFF` | mapping `1 << (bits − 1)` there makes half-range endpoints full-bright, so dark-to-mid gradients turn bright |
+| 16-bit one-region mode (mode code 15: 16-bit base, 4-bit deltas) | mask `(1 << 16) − 1` computed in at least 32 bits | computed in 16 bits the mask is 0, so the second endpoint decodes as 0 |
+| signed format (SF16) | two's-complement sign extension of the endpoints | taking `value & 0x7FFF` as a magnitude after extension makes negative endpoints wrong |
+
+A fourth, smaller one: in the signed format a negative value that
+truncates to zero must decode as +0, per the specification's unquantize
+rule (high).
+
+The first two are high confidence; the signed case is high from the
+specification but only 25 signed textures were available to look at.
+
+**Effect on the lighting store** (`data/ttdb/lighting/lighting.ttpf`,
+mip 0, high confidence, measured on the whole store): 1,159 textures, 1,156
+decodable (3 have mip 0 only in BCPack chunks): BC7_UNORM 714, BC6H_UF16
+401, BC6H_SF16 25, BC1_UNORM 10, BC7_UNORM_SRGB 6. Fixing the three
+pitfalls changes 234 of 401 UF16 and 17 of 25 SF16 textures (BC7 and BC1
+unchanged). The median changed texture differs in 0.06 % of its pixels,
+but 243 of the 251 have a pixel off by 64 or more levels (8-bit, clamped to
+0..1), and two (a UF16 1024² and an SF16 512²) were garbled over 94–98 % of
+their pixels.
+
+Open: BC6H textures in the other stores (effect sprites, colour ramps) were
+not compared; BCPack BC6H output goes through the same block decoder, so it
+changes too (not checked separately); one SF16 2048 × 1024 texture looks
+like noisy line art with either decoder (maybe a data texture); what each
+lighting texture is for is not established.
+
 ## Coverage (all 57 stores, 352,461 textures)
 
 **Since BC1 BCPack decodes** (2026-11-21; chunk-table check over the 46

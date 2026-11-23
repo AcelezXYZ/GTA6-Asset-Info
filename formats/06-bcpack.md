@@ -49,7 +49,7 @@ in the 57 stores, 0 failures.
 | BC4 | 77 | 77 | 0 |
 | BC5 | 333 | 325 | 0 |
 | BC6H | 268 | 268 | 0 |
-| BC7 | 5,167 | 5,120 | **1.05 %** (34 endpoint preset slots; 17.7 % of blocks in the content-pack stores); a fit is under way |
+| BC7 | 5,167 | 5,120 | 0 (the last 34 endpoint preset slots, 839,119 blocks in 251 chunks, fitted 2026-11-23) |
 
 The main-store counts match the codec table of [§5](05-ttpf.md); the
 content-pack stores add BC1 2,705, BC5 8 and BC7 47 chunks.
@@ -251,10 +251,23 @@ mip 3 under a mip 1 with a logo), so they cannot be scored.
   medium. The 2 edge-fitted BC6H slots are mostly unanchored (64,431 of
   65,536 and 16,384 of 16,384 blocks rooted at the slot, in lighting
   textures with mip 0 only); the render has a black background and smooth
-  glow, but their absolute level is unknown. BC7 is being refitted against
-  the decoded next smaller mip instead, which pins the level.
-- **BC7:** 34 endpoint preset slots (1.05 % of blocks) are not fitted yet;
-  the order of the mode 0 / 2 headers is fitted (medium).
+  glow, but their absolute level is unknown. BC7 was refitted against the
+  decoded next smaller mip instead, which pins the level (next item).
+- **BC7 last slots** (2026-11-23): the last 34 endpoint preset slots
+  (839,119 blocks in 251 chunks, 1.05 % of BC7 blocks, 17.7 % in the
+  content-pack stores) are fitted against the decode of the next smaller
+  mip, in two passes (first only child mips that decode from fitted slots,
+  59 % of the blocks, then all, 85 %), plus a small edge-continuity term.
+  **Every codec now has 0 unfitted blocks** over all 108,605 chunks. Check,
+  mip 0 against mip 1 on the 71 affected textures: median 33.4 dB, 53 at
+  30 dB or more, 4 under 20 dB (edge-only fit: 27.2 dB, 27, 21); the score
+  on the 1,029 chunks with plain references is unchanged. Medium-high for
+  the 30 slots with many child-mip targets, medium for small slots (4 have
+  under 100 targets). Open: the 4 textures under 20 dB did not move between
+  passes, so their error has another cause; the preset values remain
+  fitted, not known. The public patent material on this codec covers only
+  the entropy layer, not the block history or presets.
+- **BC7:** the order of the mode 0 / 2 headers is fitted (medium).
 
 **BC1/3/4/5:** Confirm the disputed or fitted endpoint presets and selector
 mappings against an independent copy of the same blocks. Two software

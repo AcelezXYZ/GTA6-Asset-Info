@@ -168,6 +168,12 @@ grooms are each followed by one scalp groom, perhaps one set per character,
 but nothing names them. Example: the scalp groom at `packs.rpf@10950d010`
 and the beard at `packs.rpf@f14aa010` sit on `head_mr1_asi_052_o_full`.
 
+*Correction (2026-11-22):* the "animal" region (bones `Tail`, `Paw`,
+`Wing`) misses animal head and body pieces without those bones, and the
+first "animal" chains have finger bones and a 1.2 m span, so they are
+probably not animals. The "same bones, fewer strands" rule also splits some
+pieces in two. The counts above are kept as measured.
+
 **No link to peds.** The 681 hair, beard, brow and lash placeholder
 drawables (1,712-byte system page) hold only joaat of their own name at
 sys +0x6A0 plus constant hashes, and none of those hashes occur in any of
@@ -310,11 +316,82 @@ a normal map in the install, no colour texture.
     magnitude.
   - Meaning unknown.
 
+## 19.6 Animal material presets and the fur link
+
+(2026-11-22.) Each animal has **one `packs.rpf` meta resource (0x7a) of
+material presets**, struct `f795e8ba` (the struct the head skins use,
+[§12](12-materials.md#material-presets-peds)): 260 resources, 2,636 presets
+(confirmed).
+
+| Field | Meaning | Confidence |
+|---|---|---|
+| `65121749` | preset name hash; a part's first preset is joaat(drawable name), the others are variations (names unknown) | confirmed |
+| `b53667be` | slot: `ac82ad6b` fullbody, `ea24b45e` eyes, `378ad10c` head, `96edae5c` teeth; `bf483c65` (fur body), `343822c2` (fur head), `80c8c1af` (horn) unresolved | confirmed |
+| `c4d75d79`, `f4fb3dec`, `ab5d2a85` | three u8 tint values; 255/255/255 or 0/0/0 = untinted; probably tint palette indices | inferred |
+| `5ecf9331` | tint palette hash (32-bit): 7 values over 708 presets (`fcef23e3` 535, `c1713805` 99, `f12638b9` 34, `fd043742` 29, `8b21128f` 6, `d164052e` 4, `05317603` 1), in no texture store or name list | unknown |
+| `ebacf18c[]` | parameters; the "base" one (`3eaddcd7` = `44e21c90`) holds struct `147fdab5`: `ead733fc` albedo (64-bit store hash), `d689b17f` normal, `41acf8eb` and `9d1000d8` (64-bit) | confirmed |
+| `12f85293` | tag map: `1c114e61` lists the drawable (head presets); `2f9afe84` on fur presets holds the slot the fur attaches to | confirmed |
+
+Struct `a9d57751` in the same resources is a whole-animal look listing one
+preset per slot (7 on a cow: body, head, eye, horn, fur body, fur head,
+teeth; inferred). Animal root fragments are a 32-triangle placeholder
+plane (shader `standard_rdp`); the animal is its named parts (confirmed).
+`crm_chimpanzee_western_m_01` and `_m_02` have no parts of their own and
+probably use the `_m_00` meshes (inferred).
+
+**Where a drawable's colour slot is not the colour:**
+
+- *Missing texture:* cat eye drawables bind a hash in no store; the preset
+  named after the drawable has the real albedo (512 × 512 BC7 sRGB).
+  Confirmed on one cat (3 eye presets).
+- *Tint mask:* cattle coats bind a linear 1024 × 1024 BC1 texture whose R
+  and B are binary patch masks (0 or 255) and G greyscale shading (12–247),
+  confirmed on the Holstein cow and bull; the three tint bytes probably
+  colour the regions through the palette. The cow also has one untinted
+  preset with a painted sRGB albedo; the bull has only tinted ones. This
+  matches the deer's region mask ([§12](12-materials.md#animal-shader-ped_standard_animal)).
+
+**Fur asset → groom pieces:**
+
+1. On fur presets `41acf8eb` is a **64-bit asset GUID**, one per fur
+   variant (confirmed).
+2. A PSO asset registry (`packs.rpf@11dce0000`) holds 1,631 assets keyed by
+   GUID, item struct `20e0f6ed`: GUID, `2d4958cf` asset type (30: 589,
+   0: 511, 1: 200, 60: 97, 50: 95, 5: 78, 23: 59, 2: 2), `20bffba8` and
+   `cb61a7e1` (64-bit, zero on type 30), properties (key → u32 list). Type
+   30 is fur / hair (inferred); its list under `e3da9c8b` ends in the slot
+   hash (confirmed, one registry read).
+3. An unnamed resource right after the groom block (`packs.rpf@113b56010`,
+   288,976 bytes) is a **hash map from GUID to a record**: u32 `0x100` and
+   u32 `0xB50` at 0x10, the map pointer at 0x18; 32-byte entries {u64 GUID,
+   16 zero bytes, pointer} with 16-byte control groups between them. A fur
+   record is {u32 byte length, u64[length / 8]}: the fur's groom pieces.
+   1,879 entries of 1–14 pieces, 6,238 distinct piece ids (e.g. cat body
+   variants 8, 9, 9, 9, 9, 9, 8; cat head 4, 4, 5, 4, 4, 5, 4; cow body 1
+   each, the tail switch). Other record shapes exist (confirmed; others
+   not decoded).
+4. The piece ids occur nowhere else in `packs.rpf` (searched as u64 and as
+   halves), so they are probably file-name hashes resolved through the TOC.
+5. **Usable link (inferred, strong evidence): grooms are stored in the
+   name order of their fur asset.** Named resources are in name order
+   (24,418 of 24,422 adjacent named drawables ascend, 2,827 of 2,864
+   fragments). Of 234 consecutive groom chains, 220 have their roots on the
+   cat's body / head mesh at a median of 0.5 mm (other chains 8 mm or
+   more); the Holstein cow's chains start right after the cat block; inside
+   the cat block the runs match the piece counts in alphabetical order of
+   the variant (body exactly; head 4, 4, 6, 4, 4, 6, 4 against 4, 4, 5, 4,
+   4, 5, 4, the extras from the chain rule splitting a piece).
+
 ## Open questions
 
-- The groom ↔ placeholder drawable link (`hair*`, `beard*`, `brows*`
-  3-vertex drawables). No shared joaat or 64-bit hash was found. It is
-  probably resolved by file name through the encrypted TOC.
+- The groom ↔ placeholder drawable link for **human** hair (`hair*`,
+  `beard*`, `brows*` 3-vertex drawables). No shared joaat or 64-bit hash
+  was found. For animal fur the order rule of [§19.6](#196-animal-material-presets-and-the-fur-link)
+  links grooms to fur assets; whether human hair follows it is not checked.
+- Animal fur: a 6-chain group with longer strands between the cat's body
+  and head variants (no GUID); the other registry files and record shapes;
+  fur colour (fur presets carry palette `fcef23e3` and a 16 × 16 texture);
+  the tint palettes and how the bytes index them.
 - The meaning of cloth particle w and the second particle / edge set.
 - The colour textures of the base heads (not in the install).
 - The meaning of hair sections A0/A1/A3–A7, B1–B3, B6, B7, Q0–Q3; the

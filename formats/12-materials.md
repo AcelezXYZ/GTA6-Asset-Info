@@ -184,9 +184,7 @@ lookup is understood.
 **Texture load of map pieces** (measured on a full map export,
 2026-11-22; high): a 64 m HD ground tile such as `n02_e01_002_hd` references
 71 materials and about 170 textures, about 166 megapixels; big ground tiles
-and building shells typically use 120–170 textures each. Loading all of
-them when a tile appears stalls a frame, so streaming has to spread the
-texture loads.
+and building shells typically use 120–170 textures each.
 
 **Texture hashes in no store.** Embedded tint palettes account for 30,095 of
 the 33,770 texture hashes that a full `levels.rpf` map export finds in no

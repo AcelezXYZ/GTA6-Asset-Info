@@ -81,6 +81,16 @@ water, terrain_multilayer.
 | `739e3d0d` | `speculartex2` | packed data. On wet-capable surfaces: R region mask, G nearly flat (puddle blobs), B detailed, A AO-like. **Most maps are R = G = 0, B ≈ 0.5**, so B is not roughness: read that way, surfaces turn mirror-like. Treat the channel meaning as unknown | inferred |
 | `19df25d7` | ? | vehicle shaders: a **128 × 256 R8G8B8A8 sRGB texture of horizontal colour bands**, one per car, shared by all its two-layer materials and the tyre ([§11](11-vehicle-paint.md#vehicle-shaders-2026-11-22)); probably a material palette | format and sharing confirmed; role inferred |
 | `2c8d7182` | `tintpalettetex` | tint palette **embedded in the model**, on almost every map model: one row of RGBA8 sRGB colours (13 to 2,051, stored linear, padded with `ffbbff`). The texture struct's +0x30 pointer leads to a record whose +8 is the 64-bit store key, so these hashes are not in any `ttpf` store | confirmed |
+| `27dbefe1`, `4983edef`, `5bcb1279`, `6df1b6c6`, `d9005af0` | `watersurfacedetailtexture`, `surfacedetailnormal0`–`2`, `surfacedetailiridescence` | water surface detail maps of `water_micro_geom` | names confirmed (joaat) |
+| `633aef4d`, `6994ef3f` | `interiordiffusemaskmap` (BC6H), `interiorlayerdiffusemap` | interior maps of `standard_interior` and `standard_2lyr_interior` | names confirmed (joaat) |
+
+**Still unnamed** (2026-11-23): `42110214`, `3ea37b39`, `3022de38`,
+`0cd6179f` (four extra per-layer textures of `standard_uber_4lyr_*`, mostly
+BC7); `38ebcdb3` (BC1, in the 2-, 3- and 4-layer shaders); `9c362b2c` (an
+interior map); `e8f7dc55`, `483cc118`, `2c9a6399`, `e0548ad3`, `d3f807ca`
+(`water_micro_geom`); `0cd27763` (in almost every shader, no texture
+bound). In the minigame pack all 78 shaders and 65 of 77 texture parameters
+are named.
 
 **Placeholder textures** (confirmed). Many building materials point their
 packed-data slot (`739e3d0d`) at a 4 × 4 all-zero texture, and some point

@@ -46,7 +46,7 @@ differ.
 | Navmesh | tiles, polygons, road flag | most other flags |
 | Lights | position, colour, type, intensity, range, cones, hour mask | a few fields |
 | Road graph | nodes, links, lanes, speed limits, street names, 34 of 51 node flags, junctions, traffic-light phases | some link flags |
-| Video | 515 Bink 2 files, stored uncompressed and carved by header; frame index; per-track audio packet framing | frame decoding (needs a Bink 2 decoder), original names |
+| Video | 515 Bink 2 files, stored uncompressed and carved by header; frame index; per-track audio packet framing; all 515 decode with a public Bink 2 decoder; 276 more in three content packs; minigame movies identified | 720p artifacts not checked frame by frame; original names |
 | UI graphics | 75 named dictionaries (loading screens, HUD, gauges); the UI texture store (10,013 sprite atlases, 90 % complete) | BCPack parts, menu layouts, a minimap tile set (none found) |
 | Text | the localised text tables (14,482 in `data.rpf`, 4.21 M strings, one table per language), key lookup, variant groups, subtitle labels and markup | the language of each table, most label names, variant selection |
 | Audio | `ADAT` container, chunk tags, Opus framing, codec ids (PCM16, float32 PCM, XMA2, Opus); music streams with 1–8 Opus sub-streams (stems) | a few header fields |

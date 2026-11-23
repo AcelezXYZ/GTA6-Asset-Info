@@ -16,7 +16,7 @@
 | ped body shape | presets in `common.rpf`, a control-to-input PSO and pose rigs in `anim.rpf`; the rig program runs (confirmed). See [Ped body shape](#ped-body-shape) |
 | music catalogue (`audio:/config/music.dat`) | title, artist and playlist records; title hash solved (confirmed). See [Music catalogue](#music-catalogue) |
 | PSIN scene placements (`story000_script.rpf`) | 97,504 64-byte placement records (confirmed). See [PSIN scene placements](#psin-scene-placements) |
-| movies (`movies.rpf`) | Bink 2: 515 movies, 505 `KB2n` and 10 `KB2j`, stored uncompressed; header, frame index and Bink Audio tracks parse (confirmed); video needs a Bink 2 decoder. See [Video](#video) |
+| movies (`movies.rpf`) | Bink 2: 515 movies, 505 `KB2n` and 10 `KB2j`, stored uncompressed; header, frame index and Bink Audio tracks parse (confirmed); all 515 decode with a public Bink 2 decoder (high). 276 more in three content packs. See [Video](#video) |
 | UI graphics | named texture dictionaries in `data.rpf` and UI texture stores. See [UI graphics](#ui-graphics) |
 | text (GXT) | `0DRP` type `0x7a` key/text resources; 54,118 keys (confirmed). All 14,482 tables of `data.rpf` (4.21 M strings, one table per language) and the 78 of `shared_minigame000` decode (confirmed). See [Text (GXT)](#text-gxt) |
 
@@ -172,6 +172,60 @@ stereo. The longest video runs 534 s. Original file names are not stored
 with the files. Matching them in order against a plain-text content list
 is reported to recover names for some groups (unverified: the list is
 not identified).
+
+### Decoding
+
+(2026-11-23, high confidence.) A recent open-source Bink 2 video decoder
+(with Bink Audio RDFT / DCT) decodes **all 515 files** with no errors,
+`KB2n` and `KB2j`, including the 246 at 1280 × 720 and the 67 at
+720 × 1280, carved by the header above. Open: there are reports of
+artifacts at 720p in that decoder; the 720p clips look clean on contact
+sheets (6 frames each) but were not checked frame by frame.
+
+### Bink files in other archives
+
+(2026-11-23, high.) A raw-byte scan of every other archive under `pack/` and
+`data/` (78 files; `KB2` + a lower-case letter at any offset with a
+plausible header) finds Bink 2 only in three content packs, all `KB2n`, on
+4 KiB boundaries as in `movies.rpf`:
+
+| Archive | Files | Content |
+|---|---|---|
+| `pack/core_restofworld` | 5 | in-world TV shows |
+| `pack/story000/story000.rpf` | 264 | story-mission screen content: CCTV, phones, PCs, news, logo animations, in-world TV and console screens showing the minigames |
+| `pack/story000_restofworld` | 7 | social media and news clips |
+
+That makes **791 Bink files** with `movies.rpf`; `shared_minigame000` has
+none. Resolutions in the two story packs: 720 × 1280 101, 1920 × 1080 58,
+1280 × 720 31, 2560 × 1440 22, 540 × 960 14, 1000 × 600 7, then 1024 ×
+1024, 1000 × 750 and 1000 × 500 (4 each) and 960 × 720 (3). Open: a Bink
+inside a compressed or encrypted entry would be missed; Bink 1 was not
+searched for outside `movies.rpf`.
+
+### Minigame movies in `movies.rpf`
+
+(2026-11-23; identification high, descriptions medium; names are
+descriptive, the original names are unknown.) Only the first 24 files in
+archive order belong to the arcade minigames, and they include **all 14
+files at 2560 × 1440**. `(width, height, frames)` is unique per file
+except 020 / 021, so it works as a lookup key. All at 30 fps.
+
+| # | Game | Content | Size, frames | Audio |
+|---|---|---|---|---|
+| 000–002 | hunting game | title loop, intro, attract | 2560 × 1440; 115, 402, 448 | no, yes, yes |
+| 003 | probably the hunting game | cabin interior / exterior | 1920 × 1080, 478 | no |
+| 004 | console | console boot logo | 1920 × 1080, 198 | yes |
+| 005 | beat-'em-up | subway loading screen | 2560 × 1440, 255 | no |
+| 006, 011–014, 017, 018 | time shooter | install, boot, title, intro, cabinet screen, emergency landing, time travel | 2560 × 1440; 799, 372, 123, 733, 302, 509, 602 | yes |
+| 007–010, 015, 016 | probably the time shooter | screen-edge glow overlays, about 3 s each | 1920 × 1080 | no |
+| 019, 022, 023 | puzzle game | studio logos, intro, title | 2560 × 1440; 601, 2177, 297 | yes, yes, no |
+| 020, 021 | puzzle game | credits, and a white version of the same size (a mask or variant) | 1920 × 1080, 3,382 | no |
+
+The rest of the archive is in-world TV adverts, phone and social clips,
+effect and UI loops, and the publisher logo (177). **The beat-'em-up's long
+intro is not a Bink file** in any scanned archive, so it is almost
+certainly rendered in-engine (medium-high); the story pack holds its
+footage only as in-world screens (store page, gameplay, title menu).
 
 ### Bink Audio framing
 

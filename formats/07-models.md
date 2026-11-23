@@ -96,11 +96,18 @@ ribbons; the real thickness is a shader parameter not yet read.
 |-----|---------|
 | 0x00 | u16 meshlet count n |
 | 0x02 | u16 ? |
-| 0x04 | u16 triangle count t |
-| 0x08 | u16 remap count r |
+| 0x04 | **u32** triangle count t |
+| 0x08 | **u32** remap count r |
 | **0x0C** | n × 16-byte descriptors: u32 ?, **u16 remap start**, u16 triangle start, u32 ? (cone?), 2 × f16 ? |
 | 0x0C + 16n | t × u32 triangles: local indices in bits 0–6, 7–13, 14–20; meshlet number from bit 21 |
 | … + 4t | r × u16 remap (local → vertex) |
+
+*Correction (2026-11-23):* the triangle and remap counts are u32; they
+were first read as u16 followed by a zero u16, which drops triangles on big
+meshes (on a motorcycle body: 595 meshlets, 70,057 triangles, 69,901 remap
+entries, 65,534 vertices; 4,521 triangles were lost before). The u16 remap
+start wraps past 65,535 but ascends, so unwrap it along meshlet order
+(confirmed on that mesh).
 
 Vertex = `remap[remap_start[meshlet] + local]`. Drop degenerate padding
 triangles. Descriptors start at 0x0C, not 0x10. About 97 % of triangles

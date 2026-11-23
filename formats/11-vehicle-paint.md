@@ -13,14 +13,15 @@
 | `4d56d7fe` / `2bb2ede8` (`lyr1materialatex` / `lyr0materialatex`) | BC1 atlas, normal-like | inferred |
 | `84c69350` / `58b6e707` (`lyr0normaltex` / `lyr1normaltex`) | BC5 normals | confirmed |
 | shader constant buffer (+0x08) | ~0x160 bytes of floats, layout not keyed by the parameter table | unknown |
-| `19df25d7` | 128 × 256 R8G8B8A8 sRGB texture of horizontal colour bands; one texture (same hash) is bound by every two-layer material of a car and by the shared tyre model (12 of 12 `standard_vehicle_2lyr` materials on one SUV, plus the tyre). Probably a material palette indexed by the layer maps or constants; the lookup is unknown | format, sharing confirmed; role inferred |
-| `346394ea` / `7d4f12e2` (`lyr0diffusetex` / `lyr1diffusetex`) | **linear BC7 data maps, not colour**; channel meanings unknown | confirmed (not colour) |
+| `19df25d7` | 128 × 256 R8G8B8A8 sRGB texture of horizontal colour bands; one texture (same hash) is bound by every two-layer material of a car and by the shared tyre model (12 of 12 `standard_vehicle_2lyr` materials on one SUV, plus the tyre). Probably a material palette indexed by the layer maps or constants; the lookup is unknown. *Later check (ambulance and SUV): every vehicle binds the **same** texture: row 0 R / G / B markers, rows 1–32 black, rows 33 and up ramps, so it is probably a placeholder the game replaces (inferred); this disagrees with "one per car" and is kept alongside it* | format, sharing confirmed; role inferred |
+| `346394ea` / `7d4f12e2` (`lyr0diffusetex` / `lyr1diffusetex`) | **linear BC7 detail maps, not colour**: R and G grey around 0.5, B a sparse mask | confirmed (not colour; channels on one map) |
+| COLOR0.a on `standard_vehicle_2lyr` | a **part id** (0–255, a few values per material), not a layer weight | confirmed (ambulance, SUV) |
 
 ### Vehicle shaders (2026-11-22)
 
 | Shader | Role | Confidence |
 |---|---|---|
-| `4aa38282` `standard_vehicle_2lyr` | **not only body paint**: one SUV has 12 materials on it, the largest (82 K triangles) spanning the whole car including the interior. Which of them take the paint colour is unknown (needs the palette lookup) | confirmed |
+| `4aa38282` `standard_vehicle_2lyr` | **not only body paint**: one SUV has 12 materials on it, the largest (82 K triangles) spanning the whole car including the interior. Rule of thumb (inferred): a material is body paint when it binds no detail texture and its meshes sit on body bones. Real per-part colours are not decoded | confirmed (coverage) |
 | `99ad6fc9` `standard_vehicle_2lyr_tyre_inst` | tyres; `diffusetex` is the engine-default white | confirmed |
 | `389206d1` `standard_vehicle_alpha` | lamp lenses and clear covers, alpha bucket. `diffusetex` RGB is one constant colour (128, 128, 98 on the sample), opacity in alpha (78–255); also `extinctionlut` and `refractionbumptexture` slots. 41 materials in a 20,000-model sample | confirmed on one vehicle |
 | `03b27476` `standard_vehicle_2lyr_reflector` | lamp reflectors (earlier grouped with car paint) | inferred (name, position) |
@@ -66,6 +67,7 @@ a separate PSO ([§17](17-other.md#vehicle-handling)).
   (1.625 × is fitted); the tyre width.
 - The shader constant buffer.
 - The `19df25d7` palette lookup, which two-layer materials are painted, and the channel layout of the layer maps.
+- Spawn configurations list about 100 part joaats; only rim, tyre, caliper, brake disc and one damage part resolve, and 0 of 218 are bone names.
 
 
 ---

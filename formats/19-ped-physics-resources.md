@@ -138,7 +138,11 @@ not re-checked):
 - The drawn count is probably c0 + c1 per root triangle (a cat body:
   277,789 + 86,802 strands from 6,757 guides; inferred). Growing that many
   random strands per triangle raised the covered area on three cat pieces
-  from 4.2 / 1.7 / 6.4 % to 88.2 / 90.7 / 65.4 %.
+  from 4.2 / 1.7 / 6.4 % to 88.2 / 90.7 / 65.4 %. The same covers the
+  coats of a cat, chimpanzee, boar, bear, boxer and deer, which supports
+  reading B6 as strand counts (a visual check only, not a comparison with
+  the game). Hair on people is unverified: a hand-picked scalp groom did not
+  line up with its head, and there is no automatic hair link for people.
 - The hair effects are an `smh_*` family (pose, simulate, `smh_gen_N`
   "InterpolateStrands" in 80 variants, modify, draw, a compute rasteriser),
   then `hair_resolve` and the `TL_PS_PBR_MATERIAL_HAIR` lighting passes;

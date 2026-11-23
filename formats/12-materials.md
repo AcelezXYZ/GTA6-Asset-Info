@@ -361,7 +361,13 @@ the 33,770 texture hashes that a full `levels.rpf` map export finds in no
 install, the content-pack stores included ([§5](05-ttpf.md); they serve the
 packs' own models). They make up about 139 K references in a full map
 export; `1e2c9340e14a7d07` and `aa3eeff23a15dc75` are probably
-engine defaults (inferred).
+engine defaults (inferred). A survey of 3,375 models (2026-11-23) finds 715
+base-colour slots over 79 further unresolved hashes: `a800afccf01aa36b` on
+nearly every vehicle's `standard_vehicle_emissive_layer` (321 slots),
+`45fecd22c2d1ef69` on ped heads, `1e2c9340e14a7d07` on batch LODs and
+terrain decals, `32de36bd78efc4e4` and `a8a97b37c9e0af76` on airport
+buildings; probably more defaults or runtime-bound textures (not
+verified).
 
 Uses by slot (full `levels.rpf` export, palettes excluded; measured):
 `c6f46e79` 41.9 K (22.7 K of them `aa3e…`), `c8e8c282` base colour 19.3 K
